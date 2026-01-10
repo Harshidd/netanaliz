@@ -1,0 +1,528 @@
+/* ============================================
+   NETANALIZ - APPLE LIGHT PREMIUM STYLESHEET
+   Master Design System v2.0
+   ============================================ */
+
+/* --- 1. FONT IMPORT (INTER) --- */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================
+   BASE LAYER - GLOBAL RESET & TYPOGRAPHY
+   ============================================ */
+@layer base {
+  /* --- GLOBAL RESET --- */
+  *, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  html {
+    background-color: #F5F5F7;
+    overflow-x: hidden;
+    scroll-behavior: smooth;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body, #root {
+    background-color: #F5F5F7;
+    color: #1D1D1F;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 16px;
+    line-height: 1.5;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* --- RESPONSIVE TYPOGRAPHY --- */
+  h1 {
+    font-size: clamp(28px, 5vw, 44px);
+    line-height: 1.15;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: #1D1D1F;
+    margin-bottom: 16px;
+  }
+
+  h2 {
+    font-size: clamp(22px, 4vw, 32px);
+    line-height: 1.2;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    color: #1D1D1F;
+    margin-bottom: 12px;
+  }
+
+  h3 {
+    font-size: clamp(18px, 3vw, 24px);
+    font-weight: 600;
+    color: #1D1D1F;
+    margin-bottom: 8px;
+  }
+
+  h4, h5, h6 {
+    font-weight: 600;
+    color: #1D1D1F;
+  }
+
+  p {
+    font-size: 16px;
+    line-height: 1.6;
+    color: #6E6E73;
+  }
+
+  /* Selection */
+  ::selection {
+    background-color: rgba(0, 113, 227, 0.15);
+    color: #1D1D1F;
+  }
+}
+
+/* ============================================
+   COMPONENTS LAYER - UI ELEMENTS
+   ============================================ */
+@layer components {
+  /* --- KARTLAR (Apple Card Style) --- */
+  .card-apple {
+    background-color: #FFFFFF;
+    border: 1px solid rgba(0, 0, 0, 0.04);
+    border-radius: 20px;
+    box-shadow: 
+      0 1px 3px rgba(0, 0, 0, 0.04),
+      0 4px 12px rgba(0, 0, 0, 0.06);
+    padding: 24px;
+    width: 100%;
+    transition: box-shadow 0.3s ease, transform 0.2s ease;
+  }
+
+  .card-apple:hover {
+    box-shadow: 
+      0 2px 6px rgba(0, 0, 0, 0.06),
+      0 8px 24px rgba(0, 0, 0, 0.08);
+  }
+
+  @media (min-width: 768px) {
+    .card-apple {
+      border-radius: 24px;
+      padding: 32px;
+    }
+  }
+
+  /* --- INPUT & SELECT (Premium Style) --- */
+  input, select, textarea {
+    height: auto;
+    padding: 12px 16px;
+    background-color: #FFFFFF;
+    border: 1.5px solid #E5E5EA;
+    border-radius: 12px;
+    color: #1D1D1F;
+    font-family: 'Inter', -apple-system, sans-serif;
+    font-size: 15px;
+    line-height: 1.4;
+    width: 100%;
+    box-sizing: border-box;
+    transition: all 0.2s ease;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
+  input:hover, select:hover, textarea:hover {
+    border-color: #D2D2D7;
+  }
+
+  input:focus, select:focus, textarea:focus {
+    border-color: #0071E3;
+    outline: none;
+    box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.1);
+  }
+
+  input::placeholder, textarea::placeholder {
+    color: #AEAEB2;
+  }
+
+  /* Number input spinner gizle */
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type="number"] {
+    -moz-appearance: textfield;
+  }
+
+  /* --- BUTONLAR (Premium Gradient) --- */
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 24px;
+    background: linear-gradient(180deg, #0077ED 0%, #0066CC 100%);
+    color: #FFFFFF;
+    font-weight: 600;
+    font-size: 15px;
+    border-radius: 12px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 
+      0 1px 2px rgba(0, 0, 0, 0.1),
+      0 4px 8px rgba(0, 102, 204, 0.2);
+  }
+
+  .btn-primary:hover {
+    background: linear-gradient(180deg, #0084FF 0%, #0071E3 100%);
+    transform: translateY(-1px);
+    box-shadow: 
+      0 2px 4px rgba(0, 0, 0, 0.12),
+      0 8px 16px rgba(0, 102, 204, 0.25);
+  }
+
+  .btn-primary:active {
+    transform: translateY(0);
+  }
+
+  /* --- TABLOLAR (Premium Style) --- */
+  .table-premium {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    background: #FFFFFF;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  }
+
+  .table-premium thead {
+    background: linear-gradient(180deg, #FAFAFA 0%, #F5F5F7 100%);
+  }
+
+  .table-premium th {
+    padding: 14px 16px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #6E6E73;
+    text-align: left;
+    border-bottom: 1px solid #E5E5EA;
+  }
+
+  .table-premium td {
+    padding: 14px 16px;
+    font-size: 14px;
+    color: #1D1D1F;
+    border-bottom: 1px solid #F5F5F7;
+  }
+
+  .table-premium tbody tr:hover {
+    background-color: #FAFAFA;
+  }
+
+  .table-premium tbody tr:last-child td {
+    border-bottom: none;
+  }
+
+  /* --- BANNER HEADER --- */
+  .banner-primary {
+    background: linear-gradient(135deg, #0077ED 0%, #0066CC 100%);
+    color: #FFFFFF;
+    padding: 20px 24px;
+    border-radius: 16px 16px 0 0;
+  }
+
+  .banner-primary * {
+    color: #FFFFFF;
+  }
+
+  /* --- LOGO --- */
+  .logo-text {
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    color: #1D1D1F;
+  }
+
+  @media (min-width: 768px) {
+    .logo-text {
+      font-size: 20px;
+    }
+  }
+
+  /* --- STAT CARD (Mini İstatistik Kartları) --- */
+  .stat-card {
+    background: #FFFFFF;
+    border: 1px solid rgba(0, 0, 0, 0.04);
+    border-radius: 16px;
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  }
+
+  .stat-card-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .stat-card-value {
+    font-size: 24px;
+    font-weight: 700;
+    line-height: 1.1;
+    color: #1D1D1F;
+  }
+
+  .stat-card-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: #6E6E73;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+}
+
+/* ============================================
+   UTILITIES LAYER
+   ============================================ */
+@layer utilities {
+  /* Scrollbar */
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: #D2D2D7;
+    border-radius: 3px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background: #AEAEB2;
+  }
+
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: #D2D2D7 transparent;
+  }
+
+  /* Text Gradient */
+  .text-gradient-primary {
+    background: linear-gradient(135deg, #0077ED 0%, #0066CC 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+}
+
+/* ============================================
+   PRINT & EXPORT STYLES (KRİTİK!)
+   ============================================ */
+@media print {
+  /* Yazdırma için temel reset */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  /* No-print elementleri gizle */
+  .no-print,
+  button,
+  nav,
+  header,
+  footer {
+    display: none !important;
+  }
+
+  /* Body ayarları */
+  html, body {
+    background-color: #FFFFFF !important;
+    color: #000000 !important;
+    font-family: 'Arial', 'Helvetica', sans-serif !important;
+    font-size: 11pt !important;
+    line-height: 1.4 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Sayfa ayarları */
+  @page {
+    size: A4 landscape;
+    margin: 12mm 10mm;
+  }
+
+  /* TABLO BÖLÜNME ÖNLEMİ (KRİTİK!) */
+  table {
+    page-break-inside: auto !important;
+  }
+
+  thead {
+    display: table-header-group !important;
+  }
+
+  tfoot {
+    display: table-footer-group !important;
+  }
+
+  tr {
+    page-break-inside: avoid !important;
+    page-break-after: auto !important;
+  }
+
+  /* Kartlar ve containerlar bölünmesin */
+  .card-apple,
+  .stat-card,
+  [class*="rounded"] {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  /* Başlıklar sonraki içerikle birlikte kalsın */
+  h1, h2, h3, h4, h5, h6 {
+    page-break-after: avoid !important;
+    break-after: avoid !important;
+  }
+
+  /* Grafikler bölünmesin */
+  .recharts-wrapper,
+  svg {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  /* Banner/Header yazdırmada küçült */
+  .banner-primary,
+  [class*="bg-gradient"] {
+    padding: 12px 16px !important;
+  }
+
+  .banner-primary h1,
+  [class*="bg-gradient"] h1 {
+    font-size: 16pt !important;
+  }
+
+  .banner-primary p,
+  [class*="bg-gradient"] p {
+    font-size: 10pt !important;
+  }
+
+  /* Tablo hücreleri kompakt */
+  th, td {
+    padding: 8px 10px !important;
+    font-size: 9pt !important;
+  }
+
+  /* Stat kartları kompakt */
+  .stat-card {
+    padding: 10px 12px !important;
+  }
+
+  .stat-card-value {
+    font-size: 16pt !important;
+  }
+
+  .stat-card-label {
+    font-size: 8pt !important;
+  }
+}
+
+/* ============================================
+   EXPORT/PDF CONTAINER STYLES
+   ============================================ */
+.export-container {
+  background-color: #FFFFFF !important;
+  color: #1D1D1F !important;
+  font-family: 'Arial', 'Helvetica', sans-serif !important;
+  padding: 20px;
+}
+
+.export-container * {
+  font-family: 'Arial', 'Helvetica', sans-serif !important;
+  letter-spacing: 0 !important;
+  word-spacing: normal !important;
+  -webkit-font-smoothing: auto !important;
+}
+
+.export-banner {
+  background-color: #FFFFFF !important;
+  border-bottom: 2px solid #E5E5EA !important;
+  padding: 20px 24px !important;
+  text-align: center !important;
+  margin-bottom: 20px;
+}
+
+.export-banner h1 {
+  font-size: 18px !important;
+  color: #1D1D1F !important;
+  margin-bottom: 8px !important;
+}
+
+.export-banner h2 {
+  font-size: 14px !important;
+  color: #6E6E73 !important;
+  margin-bottom: 4px !important;
+}
+
+.export-banner p {
+  font-size: 12px !important;
+  color: #86868B !important;
+}
+
+/* ============================================
+   ANIMATIONS
+   ============================================ */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.4s ease-out;
+}
+
+.animate-pulse-soft {
+  animation: pulse-soft 2s ease-in-out infinite;
+}
+
+/* ============================================
+   RESPONSIVE HELPERS
+   ============================================ */
+@media (max-width: 767px) {
+  .card-apple {
+    border-radius: 16px;
+    padding: 16px;
+  }
+
+  input, select, textarea {
+    padding: 10px 14px;
+    font-size: 16px; /* iOS zoom'u önle */
+  }
+
+  .stat-card {
+    padding: 12px 14px;
+  }
+
+  .stat-card-value {
+    font-size: 20px;
+  }
+}
