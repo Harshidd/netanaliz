@@ -45,6 +45,7 @@ import {
 import jsPDF from 'jspdf'
 import html2canvas from 'html2canvas'
 import * as XLSX from 'xlsx'
+import { buildAnalysis, buildStudentComment } from '../core/scoring'
 
 // Pastel renk paleti
 const COLORS = {
@@ -82,723 +83,94 @@ const AnalysisDashboard = ({ config, students, grades, onBack, onEditGrades, onN
   const [activeTab, setActiveTab] = useState('class') // 'class' | 'student'
   const [selectedStudentId, setSelectedStudentId] = useState('')
   const [isExporting, setIsExporting] = useState(false)
-  
-  // Refs for PDF export
+
   const classTableRef = useRef(null)
   const studentCardRef = useRef(null)
   const chartsRef = useRef(null)
+  const fullExportRef = useRef(null)
+  const remedialCardsRef = useRef(null)
 
-  // Analiz hesaplamaları
   const analysis = useMemo(() => {
-    const maxTotalScore = config.outcomeScores?.reduce((sum, score) => sum + score, 0) || 100
-    
-    // YENİ: Ayrıştırılmış Başarı Kriterleri
-    // 1. Genel geçme puanı (mutlak değer) - Öğrencinin dersi geçmesi için
-    const generalPassingScore = config.generalPassingScore ?? 50
-    // 2. Kazanım ustalık barajı (yüzde) - Telafi listesi için
-    const outcomeMasteryThreshold = config.outcomeMasteryThreshold ?? 50
-    
-    // Geriye uyumluluk: eski successThreshold varsa kullan
-    const legacyThreshold = config.successThreshold 
-      ? (maxTotalScore * config.successThreshold) / 100 
-      : generalPassingScore
-
-    // Öğrenci sonuçları
-    const studentResults = students.map((student) => {
-      let total = 0
-      const outcomeScores = {}
-
-      config.outcomes.forEach((_, outcomeIndex) => {
-        const score = parseFloat(grades[student.id]?.[outcomeIndex]) || 0
-        outcomeScores[outcomeIndex] = score
-        total += score
-      })
-
-      return {
-        ...student,
-        total,
-        outcomeScores,
-        // YENİ: Genel geçme puanına göre değerlendirme (mutlak değer)
-        isPassing: total >= generalPassingScore,
-        percentage: (total / maxTotalScore) * 100,
-      }
-    })
-
-    // Sınıf istatistikleri
-    const passingCount = studentResults.filter((s) => s.isPassing).length
-    const failingCount = studentResults.length - passingCount
-    const passRate = studentResults.length > 0 ? (passingCount / studentResults.length) * 100 : 0
-    const classAverage = studentResults.length > 0 
-      ? studentResults.reduce((sum, s) => sum + s.total, 0) / studentResults.length 
-      : 0
-    const classAveragePercentage = (classAverage / maxTotalScore) * 100
-
-    // Kazanım analizi - YENİ: outcomeMasteryThreshold kullanılıyor
-    const outcomeAnalysis = config.outcomes.map((outcome, index) => {
-      const maxScore = config.outcomeScores[index]
-      // YENİ: Kazanım ustalık barajını kullan (yüzde bazlı)
-      const outcomeThreshold = maxScore * (outcomeMasteryThreshold / 100)
-
-      let successCount = 0
-      let totalScore = 0
-
-      studentResults.forEach((student) => {
-        const score = student.outcomeScores[index]
-        totalScore += score
-        if (score >= outcomeThreshold) {
-          successCount++
-        }
-      })
-
-      const successRate = studentResults.length > 0 ? (successCount / studentResults.length) * 100 : 0
-      const avgScore = studentResults.length > 0 ? totalScore / studentResults.length : 0
-      const avgPercentage = (avgScore / maxScore) * 100
-
-      return {
-        outcome,
-        index,
-        maxScore,
-        successRate,
-        avgScore,
-        avgPercentage,
-        successCount,
-        failCount: studentResults.length - successCount,
-        failRate: 100 - successRate,
-      }
-    })
-
-    // En zorlanılan 3 kazanım
-    const troubledOutcomes = [...outcomeAnalysis]
-      .sort((a, b) => b.failRate - a.failRate)
-      .slice(0, 3)
-      .filter(o => o.failRate > 30)
-
-    // Puan dağılımı (histogram için)
-    const scoreDistribution = [
-      { range: '0-20', count: 0, label: '0-20', color: COLORS.danger },
-      { range: '21-40', count: 0, label: '21-40', color: COLORS.warning },
-      { range: '41-60', count: 0, label: '41-60', color: '#fbbf24' },
-      { range: '61-80', count: 0, label: '61-80', color: COLORS.success },
-      { range: '81-100', count: 0, label: '81-100', color: '#059669' },
-    ]
-
-    studentResults.forEach((student) => {
-      const pct = student.percentage
-      if (pct <= 20) scoreDistribution[0].count++
-      else if (pct <= 40) scoreDistribution[1].count++
-      else if (pct <= 60) scoreDistribution[2].count++
-      else if (pct <= 80) scoreDistribution[3].count++
-      else scoreDistribution[4].count++
-    })
-
-    // Kazanım Bazlı Telafi Listesi (Failure Matrix)
-    // YENİ: outcomeMasteryThreshold kullanılıyor - dersi geçen öğrenci bile kazanım bazlı eksik olabilir
-    const failureMatrix = config.outcomes.map((outcome, index) => {
-      const maxScore = config.outcomeScores[index]
-      // YENİ: Kazanım ustalık barajını kullan (yüzde bazlı)
-      const failThreshold = maxScore * (outcomeMasteryThreshold / 100)
-      
-      // Bu kazanımda başarısız olan öğrencileri filtrele
-      // ÖNEMLİ: Dersi geçmiş olsa bile bu kazanımda düşük puan alan öğrenciler listelenir
-      const failedStudents = studentResults.filter((student) => {
-        const score = student.outcomeScores[index]
-        return score < failThreshold
-      }).map(student => ({
-        id: student.id,
-        name: student.name,
-        score: student.outcomeScores[index],
-        maxScore: maxScore,
-        percentage: (student.outcomeScores[index] / maxScore) * 100,
-        // YENİ: Öğrencinin dersi geçip geçmediğini de ekle
-        isPassingOverall: student.isPassing
-      }))
-
-      const failRate = studentResults.length > 0 
-        ? (failedStudents.length / studentResults.length) * 100 
-        : 0
-
-      return {
-        outcome,
-        index,
-        maxScore,
-        failedStudents,
-        failedCount: failedStudents.length,
-        totalStudents: studentResults.length,
-        failRate,
-        isAllSuccess: failedStudents.length === 0
-      }
-    })
-
-    return {
-      studentResults,
-      passingCount,
-      failingCount,
-      passRate,
-      classAverage,
-      classAveragePercentage,
-      outcomeAnalysis,
-      troubledOutcomes,
-      scoreDistribution,
-      failureMatrix,
-      maxTotalScore,
-      generalPassingScore,
-      outcomeMasteryThreshold,
-    }
+    return buildAnalysis({ config, students, grades })
   }, [config, students, grades])
 
-  // Seçili öğrenci
   const selectedStudent = useMemo(() => {
     if (!selectedStudentId) return null
-    return analysis.studentResults.find(s => s.id === selectedStudentId)
+    return analysis.studentResults.find((student) => student.id === selectedStudentId) || null
   }, [selectedStudentId, analysis.studentResults])
 
-  // Öğrenci için otomatik yorum üret
-  const generateStudentComment = (student) => {
-    if (!student) return ''
-    
-    const isAboveAverage = student.total > analysis.classAverage
-    const weakOutcomes = config.outcomes.filter((_, i) => {
-      const score = student.outcomeScores[i]
-      const maxScore = config.outcomeScores[i]
-      return (score / maxScore) < 0.5
+  const studentComment = useMemo(() => {
+    return buildStudentComment({
+      student: selectedStudent,
+      classAverage: analysis.classAverage,
+      outcomes: config.outcomes || [],
+      outcomeScores: config.outcomeScores || [],
     })
-    
-    let comment = `${student.name}, `
-    
-    if (isAboveAverage) {
-      comment += `sınıf ortalamasının ${(student.total - analysis.classAverage).toFixed(1)} puan üzerinde performans göstermiştir`
-    } else {
-      comment += `sınıf ortalamasının ${(analysis.classAverage - student.total).toFixed(1)} puan altında performans göstermiştir`
-    }
-    
-    if (weakOutcomes.length > 0 && weakOutcomes.length <= 2) {
-      const weakNames = weakOutcomes.map((o) => `"Kazanım ${config.outcomes.indexOf(o) + 1}"`).join(' ve ')
-      comment += `. ${weakNames} konusunda ek çalışma önerilmektedir.`
-    } else if (weakOutcomes.length > 2) {
-      comment += `. Genel bir tekrar çalışması önerilmektedir.`
-    } else {
-      comment += `. Tüm kazanımlarda başarılı bir performans sergilemiştir.`
-    }
-    
-    return comment
-  }
+  }, [selectedStudent, analysis.classAverage, config.outcomes, config.outcomeScores])
+
+  const scoreDistribution = useMemo(() => {
+    return analysis.scoreDistribution.map((entry, index) => ({
+      ...entry,
+      color: COLORS.chart[index] || COLORS.primary,
+    }))
+  }, [analysis.scoreDistribution])
 
   const handlePrint = () => {
     window.print()
   }
 
-  // ===== EXCEL EXPORT FONKSİYONLARI =====
+  const exportClassToPDF = () => {
+    console.log('PDF export (sinif) gecici olarak devre disi.')
+    alert('PDF export bu surumde gecici olarak devre disi.')
+  }
+
   const exportClassToExcel = () => {
-    try {
-      const headers = [
-        'Sıra No',
-        'Okul No',
-        'Adı Soyadı',
-        ...config.outcomes.map((_, i) => `S${i + 1} (${config.outcomeScores[i]})`),
-        `Toplam (${analysis.maxTotalScore})`,
-        'Sonuç'
-      ]
+    console.log('Excel export (sinif) gecici olarak devre disi.')
+    alert('Excel export bu surumde gecici olarak devre disi.')
+  }
 
-      const data = analysis.studentResults.map((student, idx) => [
-        idx + 1,
-        student.studentNumber || student.no || '-',
-        student.name,
-        ...config.outcomes.map((_, i) => Number(student.outcomeScores[i].toFixed(1))),
-        Number(student.total.toFixed(1)),
-        student.isPassing ? 'GEÇTİ' : 'KALDI'
-      ])
+  const exportChartsToImage = () => {
+    console.log('Grafik export (png) gecici olarak devre disi.')
+    alert('Grafik export bu surumde gecici olarak devre disi.')
+  }
 
-      const avgRow = [
-        '',
-        '',
-        'SINIF ORTALAMASI',
-        ...config.outcomes.map((_, i) => Number(analysis.outcomeAnalysis[i].avgScore.toFixed(1))),
-        Number(analysis.classAverage.toFixed(1)),
-        `%${analysis.passRate.toFixed(0)}`
-      ]
-      data.push(avgRow)
+  const exportFullReportToImage = () => {
+    console.log('Tam rapor export (png) gecici olarak devre disi.')
+    alert('Tam rapor export bu surumde gecici olarak devre disi.')
+  }
 
-      const ws = XLSX.utils.aoa_to_sheet([headers, ...data])
-      ws['!cols'] = [
-        { wch: 8 },
-        { wch: 10 },
-        { wch: 25 },
-        ...config.outcomes.map(() => ({ wch: 10 })),
-        { wch: 12 },
-        { wch: 10 }
-      ]
+  const exportFullReportToPDF = () => {
+    console.log('Tam rapor export (pdf) gecici olarak devre disi.')
+    alert('Tam rapor export bu surumde gecici olarak devre disi.')
+  }
 
-      const wb = XLSX.utils.book_new()
-      XLSX.utils.book_append_sheet(wb, ws, 'Sınıf Listesi')
-
-      const fileName = `NetAnaliz_${config.courseName || 'Rapor'}_Sinif_Listesi.xlsx`
-      XLSX.writeFile(wb, fileName)
-    } catch (error) {
-      console.error('Excel export hatası:', error)
-      alert('Excel dosyası oluşturulurken bir hata oluştu.')
-    }
+  const exportStudentToPDF = () => {
+    console.log('PDF export (ogrenci) gecici olarak devre disi.')
+    alert('PDF export bu surumde gecici olarak devre disi.')
   }
 
   const exportStudentToExcel = () => {
-    if (!selectedStudent) {
-      alert('Lütfen önce bir öğrenci seçin.')
-      return
-    }
-
-    try {
-      const infoData = [
-        ['ÖĞRENCİ KARNESİ - NetAnaliz'],
-        [],
-        ['Okul', config.schoolName || '-'],
-        ['Ders', config.courseName || '-'],
-        ['Öğrenci Adı', selectedStudent.name],
-        ['Okul No', selectedStudent.no || '-'],
-        ['Toplam Puan', `${selectedStudent.total.toFixed(1)} / ${analysis.maxTotalScore}`],
-        ['Başarı Oranı', `%${selectedStudent.percentage.toFixed(1)}`],
-        ['Sonuç', selectedStudent.isPassing ? 'GEÇTİ' : 'KALDI'],
-        [],
-        ['KAZANIM DETAYLARI'],
-        ['Soru', 'Kazanım', 'Alınan Puan', 'Max Puan', 'Başarı Durumu']
-      ]
-
-      config.outcomes.forEach((outcome, idx) => {
-        const score = selectedStudent.outcomeScores[idx]
-        const maxScore = config.outcomeScores[idx]
-        const pct = (score / maxScore) * 100
-        const isSuccess = pct >= (config.outcomeMasteryThreshold || 50)
-
-        infoData.push([
-          `S${idx + 1}`,
-          outcome,
-          Number(score.toFixed(1)),
-          maxScore,
-          isSuccess ? 'BAŞARILI' : 'BAŞARISIZ'
-        ])
-      })
-
-      const ws = XLSX.utils.aoa_to_sheet(infoData)
-      ws['!cols'] = [
-        { wch: 10 },
-        { wch: 40 },
-        { wch: 12 },
-        { wch: 10 },
-        { wch: 15 }
-      ]
-
-      const wb = XLSX.utils.book_new()
-      XLSX.utils.book_append_sheet(wb, ws, 'Öğrenci Karnesi')
-
-      const fileName = `NetAnaliz_${selectedStudent.name.replace(/\s+/g, '_')}_Karnesi.xlsx`
-      XLSX.writeFile(wb, fileName)
-    } catch (error) {
-      console.error('Excel export hatası:', error)
-      alert('Excel dosyası oluşturulurken bir hata oluştu.')
-    }
+    console.log('Excel export (ogrenci) gecici olarak devre disi.')
+    alert('Excel export bu surumde gecici olarak devre disi.')
   }
 
-  // ===== GELİŞMİŞ PDF EXPORT FONKSİYONLARI =====
-  const waitForCharts = useCallback(() => {
-    return new Promise((resolve) => {
-      setTimeout(resolve, 500) // Grafiklerin render edilmesini bekle
+  const today = useMemo(() => {
+    if (config.examDate) {
+      const parsed = new Date(config.examDate)
+      if (!Number.isNaN(parsed.getTime())) {
+        return parsed.toLocaleDateString('tr-TR', {
+          day: 'numeric',
+          month: 'long',
+          year: 'numeric',
+        })
+      }
+    }
+    return new Date().toLocaleDateString('tr-TR', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
     })
-  }, [])
-
-  // Font düzeltmesi için onclone konfigürasyonu - OPTİMİZE EDİLMİŞ
-  const getHtml2CanvasConfig = (element, highQuality = false) => ({
-    scale: highQuality ? 2.5 : 2,  // Optimize edilmiş çözünürlük (hız için)
-    useCORS: true,
-    logging: false,
-    backgroundColor: '#ffffff',
-    windowWidth: element.scrollWidth,
-    windowHeight: element.scrollHeight,
-    allowTaint: true,
-    imageTimeout: 5000,  // 5 saniye timeout
-    removeContainer: true,
-    onclone: (clonedDoc) => {
-      // Font düzeltmeleri
-      clonedDoc.body.style.fontFamily = 'Arial, Helvetica, sans-serif';
-      clonedDoc.body.style.letterSpacing = '0';
-      clonedDoc.body.style.wordSpacing = 'normal';
-      
-      // Sadece kritik elementleri düzelt (performans için)
-      const elements = clonedDoc.querySelectorAll('h1, h2, h3, p, td, th, span, div');
-      elements.forEach(el => {
-        el.style.fontFamily = 'Arial, Helvetica, sans-serif';
-        el.style.letterSpacing = '0';
-        // Transform'ları kaldır (bulanıklık önlemi)
-        if (el.style.transform && el.style.transform.includes('translate')) {
-          el.style.transform = 'none';
-        }
-      });
-
-      // Tabloların bölünmemesi için
-      Array.from(clonedDoc.querySelectorAll('table, tr, .card-apple')).forEach(el => {
-        el.style.pageBreakInside = 'avoid';
-        el.style.breakInside = 'avoid';
-      });
-    }
-  })
-
-  // Tarih formatı (dosya adları için)
-  const getDateString = () => {
-    const now = new Date()
-    return `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`
-  }
-
-  const exportClassToPDF = async () => {
-    if (!classTableRef.current) return
-
-    setIsExporting(true)
-    try {
-      await waitForCharts()
-      
-      const pdf = new jsPDF({
-        orientation: 'landscape',
-        unit: 'mm',
-        format: 'a4',
-        compress: true
-      })
-
-      const pdfWidth = pdf.internal.pageSize.getWidth()
-      const pdfHeight = pdf.internal.pageSize.getHeight()
-
-      // ===== RESMİ BELGE HEADER (Ortalanmış) =====
-      const headerHeight = 28
-      pdf.setFillColor(37, 99, 235)
-      pdf.rect(0, 0, pdfWidth, headerHeight, 'F')
-      
-      // Tüm bilgiler ortalanmış
-      const centerX = pdfWidth / 2
-      pdf.setTextColor(255, 255, 255)
-      
-      // Okul Adı (En büyük - 1. satır)
-      const schoolName = toAscii(config.schoolName || 'Okul Adi')
-      pdf.setFontSize(11)
-      pdf.setFont('helvetica', 'bold')
-      pdf.text(schoolName, centerX, 8, { align: 'center' })
-      
-      // Ders ve Sınıf Bilgisi (2. satır)
-      const courseName = toAscii(config.courseName || 'Ders')
-      const gradeLevel = toAscii(config.gradeLevel || 'Sinif')
-      pdf.setFontSize(9)
-      pdf.setFont('helvetica', 'normal')
-      pdf.text(`${gradeLevel} - ${courseName} Dersi Sinav Analizi`, centerX, 14, { align: 'center' })
-      
-      // Öğretmen ve Tarih (3. satır)
-      const teacherName = toAscii(config.teacherName || 'Ogretmen')
-      pdf.setFontSize(8)
-      pdf.text(`Ders Ogretmeni: ${teacherName}  |  Tarih: ${today}`, centerX, 20, { align: 'center' })
-      
-      // Alt çizgi dekorasyon
-      pdf.setDrawColor(255, 255, 255)
-      pdf.setLineWidth(0.3)
-      pdf.line(centerX - 40, 24, centerX + 40, 24)
-
-      // ===== ANA İÇERİK =====
-      const element = classTableRef.current
-      const canvas = await html2canvas(element, getHtml2CanvasConfig(element))
-
-      const imgData = canvas.toDataURL('image/png')
-      const imgWidth = canvas.width
-      const imgHeight = canvas.height
-      const ratio = Math.min((pdfWidth - 12) / imgWidth, (pdfHeight - headerHeight - 15) / imgHeight)
-      
-      const imgX = (pdfWidth - imgWidth * ratio) / 2
-      const imgY = headerHeight + 4
-
-      pdf.addImage(imgData, 'PNG', imgX, imgY, imgWidth * ratio, imgHeight * ratio, undefined, 'FAST')
-
-      // ===== FOOTER =====
-      pdf.setTextColor(100, 100, 100)
-      pdf.setFontSize(7)
-      pdf.text('NetAnaliz Raporu', centerX, pdfHeight - 4, { align: 'center' })
-
-      const fileName = `NetAnaliz_Sinif_Listesi_${getDateString()}.pdf`
-      pdf.save(fileName)
-    } catch (error) {
-      console.error('PDF export hatası:', error)
-      alert('PDF dosyası oluşturulurken bir hata oluştu.')
-    } finally {
-      setIsExporting(false)
-    }
-  }
-
-  const exportStudentToPDF = async () => {
-    if (!studentCardRef.current || !selectedStudent) {
-      alert('Lütfen önce bir öğrenci seçin.')
-      return
-    }
-
-    setIsExporting(true)
-    try {
-      await waitForCharts()
-
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4',
-        compress: true
-      })
-
-      const pdfWidth = pdf.internal.pageSize.getWidth()
-      const pdfHeight = pdf.internal.pageSize.getHeight()
-
-      // ===== RESMİ BELGE HEADER (Ortalanmış) =====
-      const headerHeight = 32
-      pdf.setFillColor(37, 99, 235)
-      pdf.rect(0, 0, pdfWidth, headerHeight, 'F')
-      
-      const centerX = pdfWidth / 2
-      pdf.setTextColor(255, 255, 255)
-      
-      // Okul Adı (1. satır)
-      const schoolName = toAscii(config.schoolName || 'Okul Adi')
-      pdf.setFontSize(12)
-      pdf.setFont('helvetica', 'bold')
-      pdf.text(schoolName, centerX, 9, { align: 'center' })
-      
-      // Belge Başlığı (2. satır)
-      pdf.setFontSize(10)
-      pdf.text('OGRENCI BASARI KARNESI', centerX, 17, { align: 'center' })
-      
-      // Öğrenci Bilgisi (3. satır)
-      const studentName = toAscii(selectedStudent.name || 'Ogrenci')
-      const studentNo = selectedStudent.studentNumber || selectedStudent.no || '-'
-      pdf.setFontSize(8)
-      pdf.setFont('helvetica', 'normal')
-      pdf.text(`Ogrenci: ${studentName}  |  No: ${studentNo}`, centerX, 24, { align: 'center' })
-      
-      // Tarih ve Öğretmen (4. satır)
-      const teacherName = toAscii(config.teacherName || 'Ogretmen')
-      pdf.setFontSize(7)
-      pdf.text(`Ders Ogretmeni: ${teacherName}  |  Tarih: ${today}`, centerX, 30, { align: 'center' })
-
-      // ===== ANA İÇERİK =====
-      const element = studentCardRef.current
-      const canvas = await html2canvas(element, getHtml2CanvasConfig(element, true))
-
-      const imgData = canvas.toDataURL('image/png')
-      const imgWidth = canvas.width
-      const imgHeight = canvas.height
-      const ratio = Math.min((pdfWidth - 16) / imgWidth, (pdfHeight - headerHeight - 35) / imgHeight)
-      
-      const imgX = (pdfWidth - imgWidth * ratio) / 2
-      const imgY = headerHeight + 4
-
-      pdf.addImage(imgData, 'PNG', imgX, imgY, imgWidth * ratio, imgHeight * ratio, undefined, 'FAST')
-
-      // ===== İMZA ALANLARI =====
-      const signY = pdfHeight - 22
-      pdf.setTextColor(60, 60, 60)
-      pdf.setFontSize(8)
-      
-      // Sol: Ders Öğretmeni
-      pdf.line(20, signY, 70, signY)
-      pdf.text('Ders Ogretmeni', 32, signY + 5)
-      
-      // Sağ: Okul Müdürü
-      pdf.line(pdfWidth - 70, signY, pdfWidth - 20, signY)
-      pdf.text('Okul Muduru', pdfWidth - 58, signY + 5)
-
-      // ===== FOOTER =====
-      pdf.setTextColor(100, 100, 100)
-      pdf.setFontSize(7)
-      pdf.text('NetAnaliz Raporu', centerX, pdfHeight - 5, { align: 'center' })
-
-      const safeStudentName = toAscii(selectedStudent.name || 'Ogrenci').replace(/\s+/g, '_')
-      const fileName = `NetAnaliz_Ogrenci_Karnesi_${safeStudentName}_${getDateString()}.pdf`
-      pdf.save(fileName)
-    } catch (error) {
-      console.error('PDF export hatası:', error)
-      alert('PDF dosyası oluşturulurken bir hata oluştu.')
-    } finally {
-      setIsExporting(false)
-    }
-  }
-
-  // ===== GRAFİK İNDİRME FONKSİYONU =====
-  const exportChartsToImage = async () => {
-    if (!chartsRef.current) return
-
-    setIsExporting(true)
-    try {
-      await waitForCharts()
-
-      const element = chartsRef.current
-      const canvas = await html2canvas(element, getHtml2CanvasConfig(element, true))
-
-      // PNG olarak indir
-      const link = document.createElement('a')
-      link.download = `NetAnaliz_Sinif_Grafikleri_${getDateString()}.png`
-      link.href = canvas.toDataURL('image/png', 1.0)
-      link.click()
-    } catch (error) {
-      console.error('Grafik export hatası:', error)
-      alert('Grafikler indirilirken bir hata oluştu.')
-    } finally {
-      setIsExporting(false)
-    }
-  }
-
-  // Ref for full export (banner + charts + remedial cards)
-  const fullExportRef = useRef(null)
-  const remedialCardsRef = useRef(null)
-
-  // ===== PREMIUM RAPOR İNDİRME (Çok Sayfalı PDF) =====
-  const exportFullReportToPDF = async () => {
-    setIsExporting(true)
-    try {
-      await waitForCharts()
-
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4'
-      })
-
-      const pdfWidth = pdf.internal.pageSize.getWidth()
-      const pdfHeight = pdf.internal.pageSize.getHeight()
-
-      // ===== SAYFA 1: Banner + Grafikler =====
-      // Premium Banner Header - BEYAZ ARKA PLAN, Resmi Evrak Stili
-      pdf.setFillColor(255, 255, 255)
-      pdf.rect(0, 0, pdfWidth, 50, 'F')
-      
-      // Koyu gri/siyah metin - TÜM METİNLER ASCII'YE ÇEVRİLİYOR
-      const schoolNameAscii = toAscii(config.schoolName || 'Okul Adi').toUpperCase()
-      const academicYearAscii = toAscii(config.academicYear || '2025-2026')
-      const semesterAscii = toAscii(config.semester || '1. Donem')
-      const courseNameAscii = toAscii(config.courseName || 'Ders')
-      const examNumberAscii = toAscii(config.examNumber || '1. Sinav')
-      const gradeLevelAscii = toAscii(config.gradeLevel || 'Sinif')
-      const teacherNameAscii = toAscii(config.teacherName || 'Ogretmen')
-      
-      pdf.setTextColor(30, 30, 30)
-      pdf.setFontSize(16)
-      pdf.setFont('helvetica', 'bold')
-      pdf.text(schoolNameAscii, pdfWidth / 2, 12, { align: 'center' })
-      
-      // Alt çizgi
-      pdf.setDrawColor(200, 200, 200)
-      pdf.setLineWidth(0.5)
-      pdf.line(pdfWidth / 2 - 30, 16, pdfWidth / 2 + 30, 16)
-      
-      pdf.setTextColor(80, 80, 80)
-      pdf.setFontSize(11)
-      pdf.setFont('helvetica', 'normal')
-      pdf.text(`${academicYearAscii} Egitim Yili - ${semesterAscii}`, pdfWidth / 2, 24, { align: 'center' })
-      
-      pdf.setTextColor(50, 50, 50)
-      pdf.setFontSize(13)
-      pdf.setFont('helvetica', 'bold')
-      const examInfo = `${courseNameAscii} Dersi - ${examNumberAscii} Analiz Raporu`
-      pdf.text(examInfo, pdfWidth / 2, 33, { align: 'center' })
-      
-      pdf.setTextColor(100, 100, 100)
-      pdf.setFontSize(9)
-      pdf.setFont('helvetica', 'normal')
-      const teacherInfo = `Sinif: ${gradeLevelAscii}  |  Ders Ogretmeni: ${teacherNameAscii}  |  Tarih: ${today}`
-      pdf.text(teacherInfo, pdfWidth / 2, 42, { align: 'center' })
-      
-      // Alt border
-      pdf.setDrawColor(220, 220, 220)
-      pdf.line(10, 48, pdfWidth - 10, 48)
-
-      // Grafikler
-      if (chartsRef.current) {
-        const chartsCanvas = await html2canvas(chartsRef.current, getHtml2CanvasConfig(chartsRef.current, true))
-        
-        const chartsImg = chartsCanvas.toDataURL('image/png')
-        const chartsRatio = Math.min((pdfWidth - 20) / chartsCanvas.width, (pdfHeight - 80) / chartsCanvas.height)
-        const chartsX = (pdfWidth - chartsCanvas.width * chartsRatio) / 2
-        
-        pdf.addImage(chartsImg, 'PNG', chartsX, 50, chartsCanvas.width * chartsRatio, chartsCanvas.height * chartsRatio)
-      }
-
-      // Page 1 Footer
-      pdf.setTextColor(150, 150, 150)
-      pdf.setFontSize(8)
-      pdf.text('NetAnaliz Raporu | Sayfa 1', pdfWidth / 2, pdfHeight - 5, { align: 'center' })
-
-      // ===== SAYFA 2: Telafi Kartları =====
-      pdf.addPage()
-      
-      // Page 2 Header - Beyaz arka plan
-      pdf.setFillColor(255, 255, 255)
-      pdf.rect(0, 0, pdfWidth, 25, 'F')
-      
-      pdf.setTextColor(30, 30, 30)
-      pdf.setFontSize(14)
-      pdf.setFont('helvetica', 'bold')
-      pdf.text('Kazanim Bazli Telafi Listesi', pdfWidth / 2, 12, { align: 'center' })
-      
-      pdf.setTextColor(100, 100, 100)
-      pdf.setFontSize(9)
-      pdf.setFont('helvetica', 'normal')
-      pdf.text(`${courseNameAscii} - ${gradeLevelAscii}`, pdfWidth / 2, 19, { align: 'center' })
-      
-      // Alt border
-      pdf.setDrawColor(220, 220, 220)
-      pdf.line(10, 23, pdfWidth - 10, 23)
-
-      // Telafi kartları
-      if (remedialCardsRef.current) {
-        const remedialCanvas = await html2canvas(remedialCardsRef.current, getHtml2CanvasConfig(remedialCardsRef.current, true))
-        
-        const remedialImg = remedialCanvas.toDataURL('image/png')
-        const remedialRatio = Math.min((pdfWidth - 20) / remedialCanvas.width, (pdfHeight - 50) / remedialCanvas.height)
-        const remedialX = (pdfWidth - remedialCanvas.width * remedialRatio) / 2
-        
-        pdf.addImage(remedialImg, 'PNG', remedialX, 30, remedialCanvas.width * remedialRatio, remedialCanvas.height * remedialRatio)
-      }
-
-      // Page 2 Footer
-      pdf.setTextColor(150, 150, 150)
-      pdf.setFontSize(8)
-      pdf.text('NetAnaliz Raporu | Sayfa 2', pdfWidth / 2, pdfHeight - 5, { align: 'center' })
-
-      // Save
-      const safeCourseNameForFile = toAscii(config.courseName || 'Ders').replace(/\s+/g, '_')
-      const fileName = `NetAnaliz_Tam_Rapor_${safeCourseNameForFile}_${getDateString()}.pdf`
-      pdf.save(fileName)
-
-    } catch (error) {
-      console.error('PDF export hatası:', error)
-      alert('PDF dosyası oluşturulurken bir hata oluştu.')
-    } finally {
-      setIsExporting(false)
-    }
-  }
-
-  // ===== PREMIUM RAPOR İNDİRME (PNG) =====
-  const exportFullReportToImage = async () => {
-    if (!fullExportRef.current) return
-
-    setIsExporting(true)
-    try {
-      await waitForCharts()
-
-      const element = fullExportRef.current
-      const canvas = await html2canvas(element, getHtml2CanvasConfig(element, true))
-
-      const link = document.createElement('a')
-      link.download = `NetAnaliz_Tam_Rapor_${config.courseName?.replace(/\s+/g, '_') || 'Ders'}_${getDateString()}.png`
-      link.href = canvas.toDataURL('image/png', 1.0)
-      link.click()
-    } catch (error) {
-      console.error('Resim export hatası:', error)
-      alert('Resim indirilirken bir hata oluştu.')
-    } finally {
-      setIsExporting(false)
-    }
-  }
-
-  // Bugünün tarihi
-  const today = new Date().toLocaleDateString('tr-TR', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric'
-  })
+  }, [config.examDate])
 
   // Custom Tooltip
   const CustomTooltip = ({ active, payload, label }) => {
@@ -1226,7 +598,7 @@ const AnalysisDashboard = ({ config, students, grades, onBack, onEditGrades, onN
           </CardHeader>
               <CardContent className="pt-6">
                 <ResponsiveContainer width="100%" height={320}>
-                  <BarChart data={analysis.scoreDistribution} barCategoryGap="20%" margin={{ bottom: 20 }}>
+                  <BarChart data={scoreDistribution} barCategoryGap="20%" margin={{ bottom: 20 }}>
                     <defs>
                       <linearGradient id="colorGradient" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="0%" stopColor="#60a5fa" stopOpacity={1}/>
@@ -1254,7 +626,7 @@ const AnalysisDashboard = ({ config, students, grades, onBack, onEditGrades, onN
                       name="Öğrenci Sayısı" 
                       radius={[8, 8, 0, 0]}
                     >
-                      {analysis.scoreDistribution.map((entry, index) => (
+                      {scoreDistribution.map((entry, index) => (
                         <Cell key={index} fill={entry.color} />
                       ))}
                     </Bar>
@@ -1572,7 +944,7 @@ const AnalysisDashboard = ({ config, students, grades, onBack, onEditGrades, onN
                   <Alert className="bg-slate-50 border-slate-200">
                     <AlertDescription className="text-slate-700 text-sm">
                       <strong className="text-slate-800">Değerlendirme:</strong><br/>
-                      {generateStudentComment(selectedStudent)}
+                      {studentComment}
                     </AlertDescription>
                   </Alert>
                 </div>
@@ -1774,3 +1146,10 @@ const AnalysisDashboard = ({ config, students, grades, onBack, onEditGrades, onN
 }
 
 export default AnalysisDashboard
+
+
+
+
+
+
+

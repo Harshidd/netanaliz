@@ -14,6 +14,17 @@ const ConfigurationStep = ({ config, onConfigChange, onNext }) => {
   const [outcomeScores, setOutcomeScores] = useState(config.outcomeScores || [])
   const [showDistributeModal, setShowDistributeModal] = useState(false)
   const [targetScore, setTargetScore] = useState(100)
+  const profile = {
+    il: config.city ?? '',
+    ilce: config.district ?? '',
+    okulAdi: config.schoolName ?? '',
+    sinifAdi: config.gradeLevel ?? '',
+    dersAdi: config.courseName ?? '',
+    sinavAdi: config.examName ?? '',
+    examDate: config.examDate ?? '',
+    ogretmenAdi: config.teacherName ?? '',
+    mudurAdi: config.principalName ?? '',
+  }
 
   useEffect(() => {
     // Varsayılan değerleri ayarla
@@ -218,10 +229,29 @@ const ConfigurationStep = ({ config, onConfigChange, onNext }) => {
           {/* Form Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
+              <Label htmlFor="city" className="text-gray-600">{"\u0130l"}</Label>
+              <Input
+                id="city"
+                value={profile.il ?? ''}
+                onChange={(e) => onConfigChange({ city: e.target.value })}
+                placeholder={"\u0130l ad\u0131n\u0131 girin"}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="district" className="text-gray-600">{"\u0130l\u00e7e"}</Label>
+              <Input
+                id="district"
+                value={profile.ilce ?? ''}
+                onChange={(e) => onConfigChange({ district: e.target.value })}
+                placeholder={"\u0130l\u00e7e ad\u0131n\u0131 girin"}
+              />
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="schoolName" className="text-gray-600">Okul Adı</Label>
               <Input
                 id="schoolName"
-                value={config.schoolName || ''}
+                value={profile.okulAdi ?? ''}
                 onChange={(e) => onConfigChange({ schoolName: e.target.value })}
                 placeholder="Okul adını girin"
                 className={errors.schoolName ? 'border-red-300 focus:border-red-400' : ''}
@@ -235,7 +265,7 @@ const ConfigurationStep = ({ config, onConfigChange, onNext }) => {
               <Label htmlFor="principalName" className="text-gray-600">Okul Müdürü</Label>
               <Input
                 id="principalName"
-                value={config.principalName || ''}
+                value={profile.mudurAdi ?? ''}
                 onChange={(e) => onConfigChange({ principalName: e.target.value })}
                 placeholder="Müdür adını girin"
                 className={errors.principalName ? 'border-red-300 focus:border-red-400' : ''}
@@ -249,7 +279,7 @@ const ConfigurationStep = ({ config, onConfigChange, onNext }) => {
               <Label htmlFor="courseName" className="text-gray-600">Ders Adı</Label>
               <Input
                 id="courseName"
-                value={config.courseName || ''}
+                value={profile.dersAdi ?? ''}
                 onChange={(e) => onConfigChange({ courseName: e.target.value })}
                 placeholder="Ders adını girin"
                 className={errors.courseName ? 'border-red-300 focus:border-red-400' : ''}
@@ -263,7 +293,7 @@ const ConfigurationStep = ({ config, onConfigChange, onNext }) => {
               <Label htmlFor="teacherName" className="text-gray-600">Öğretmen Adı</Label>
               <Input
                 id="teacherName"
-                value={config.teacherName || ''}
+                value={profile.ogretmenAdi ?? ''}
                 onChange={(e) => onConfigChange({ teacherName: e.target.value })}
                 placeholder="Öğretmen adını girin"
                 className={errors.teacherName ? 'border-red-300 focus:border-red-400' : ''}
@@ -277,7 +307,7 @@ const ConfigurationStep = ({ config, onConfigChange, onNext }) => {
               <Label htmlFor="gradeLevel" className="text-gray-600">Sınıf Düzeyi</Label>
               <Select
                 id="gradeLevel"
-                value={config.gradeLevel || ''}
+                value={profile.sinifAdi ?? ''}
                 onChange={(e) => onConfigChange({ gradeLevel: e.target.value })}
                 className={errors.gradeLevel ? 'border-red-300 focus:border-red-400' : ''}
               >
@@ -378,6 +408,25 @@ const ConfigurationStep = ({ config, onConfigChange, onNext }) => {
                   <option key={num} value={`${num}. Sınav`}>{num}. Sınav</option>
                 ))}
               </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="examName" className="text-gray-600">Sınav Adı</Label>
+              <Input
+                id="examName"
+                value={profile.sinavAdi ?? ''}
+                onChange={(e) => onConfigChange({ examName: e.target.value })}
+                placeholder="Sınav adını girin"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="examDate" className="text-gray-600">Tarih</Label>
+              <Input
+                id="examDate"
+                type="date"
+                value={profile.examDate ?? ''}
+                onChange={(e) => onConfigChange({ examDate: e.target.value })}
+              />
             </div>
           </div>
 
@@ -507,3 +556,8 @@ const ConfigurationStep = ({ config, onConfigChange, onNext }) => {
 }
 
 export default ConfigurationStep
+
+
+
+
+

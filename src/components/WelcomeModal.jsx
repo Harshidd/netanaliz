@@ -19,8 +19,12 @@ const WelcomeModal = ({ onClose }) => {
     setIsAnimating(false)
     setTimeout(() => {
       setIsVisible(false)
-      // SessionStorage'a kaydet - sayfa kapatılana kadar bir daha gösterme
-      sessionStorage.setItem('netanaliz_welcomed', 'true')
+      // localStorage'a kaydet - bir daha gösterme
+      try {
+        localStorage.setItem('netanaliz_welcomed', 'true')
+      } catch (error) {
+        console.warn('localStorage yazma hatası:', error)
+      }
       onClose()
     }, 200)
   }
@@ -94,7 +98,7 @@ const WelcomeModal = ({ onClose }) => {
                     Akıllı Bellek
                   </h3>
                   <p className="text-xs text-gray-600 leading-relaxed">
-                    Çalışmalarınız tarayıcı belleğinde korunur. Sayfayı yenileseniz bile verileriniz kaybolmaz.
+                    Çalışmalarınız bu cihazda saklanır. Sayfayı yenileseniz bile verileriniz kaybolmaz.
                   </p>
                 </div>
               </div>
@@ -109,7 +113,7 @@ const WelcomeModal = ({ onClose }) => {
                     Otomatik Temizleme
                   </h3>
                   <p className="text-xs text-gray-600 leading-relaxed">
-                    Güvenliğiniz için, <strong>tarayıcı sekmesini kapattığınızda</strong> tüm veriler otomatik silinir.
+                    Dilediğinizde <strong>Yeni Analiz</strong> ile çalışmanızı temizleyebilirsiniz.
                   </p>
                 </div>
               </div>
@@ -140,4 +144,6 @@ const WelcomeModal = ({ onClose }) => {
 }
 
 export default WelcomeModal
+
+
 

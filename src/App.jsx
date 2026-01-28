@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import ConfigurationStep from './components/ConfigurationStep'
 import ExcelUploader from './components/ExcelUploader'
 import GradingTable from './components/GradingTable'
@@ -6,12 +6,19 @@ import AnalysisDashboard from './components/AnalysisDashboard'
 import WelcomeModal from './components/WelcomeModal'
 import { Button } from './components/ui/Button'
 import { RotateCcw, ChevronLeft } from 'lucide-react'
-
-// SessionStorage anahtarı
-const STORAGE_KEY = 'netanaliz_session'
+import {
+  loadProfileMeta,
+  loadProjectMeta,
+  saveProfile,
+  saveProjectState,
+  clearProjectState,
+  loadWelcomeFlag,
+} from './storage'
 
 // Varsayılan config
 const DEFAULT_CONFIG = {
+  city: '',
+  district: '',
   schoolLevel: 'ortaokul',
   schoolName: '',
   principalName: '',
@@ -19,6 +26,8 @@ const DEFAULT_CONFIG = {
   teacherName: '',
   gradeLevel: '',
   classSection: '',  // YENİ: Şube (A, B, C...)
+  examName: '',
+  examDate: '',
   semester: '1. Dönem',
   examNumber: '1. Sınav',
   academicYear: '2025-2026',
@@ -28,48 +37,147 @@ const DEFAULT_CONFIG = {
   outcomeScores: [],
 }
 
-function App() {
-  // SessionStorage'dan veri yükle (sayfa yenilendiğinde kaybolmasın)
-  const loadFromStorage = useCallback(() => {
-    try {
-      const saved = sessionStorage.getItem(STORAGE_KEY)
-      if (saved) {
-        return JSON.parse(saved)
-      }
-    } catch (e) {
-      console.warn('SessionStorage okuma hatası:', e)
-    }
-    return null
-  }, [])
+const PROFILE_DEFAULT = {
+  il: '',
+  ilce: '',
+  okulAdi: '',
+  sinifAdi: '',
+  dersAdi: '',
+  sinavAdi: '',
+  examDate: '',
+  ogretmenAdi: '',
+  mudurAdi: '',
+}
 
-  // Başlangıç değerlerini sessionStorage'dan al
-  const savedData = loadFromStorage()
-  
-  const [currentStep, setCurrentStep] = useState(savedData?.currentStep || 1)
-  const [config, setConfig] = useState(savedData?.config || DEFAULT_CONFIG)
-  const [students, setStudents] = useState(savedData?.students || [])
-  const [grades, setGrades] = useState(savedData?.grades || {})
-  
+const toSafeString = (value) => (typeof value === 'string' ? value : '')
+
+const normalizeProfile = (profile) => ({
+  il: toSafeString(profile?.il),
+  ilce: toSafeString(profile?.ilce),
+  okulAdi: toSafeString(profile?.okulAdi),
+  sinifAdi: toSafeString(profile?.sinifAdi),
+  dersAdi: toSafeString(profile?.dersAdi),
+  sinavAdi: toSafeString(profile?.sinavAdi),
+  examDate: toSafeString(profile?.examDate),
+  ogretmenAdi: toSafeString(profile?.ogretmenAdi),
+  mudurAdi: toSafeString(profile?.mudurAdi),
+})
+
+const mapProfileToConfig = (profile) => ({
+  city: profile.il,
+  district: profile.ilce,
+  schoolName: profile.okulAdi,
+  gradeLevel: profile.sinifAdi,
+  courseName: profile.dersAdi,
+  examName: profile.sinavAdi,
+  examDate: profile.examDate,
+  teacherName: profile.ogretmenAdi,
+  principalName: profile.mudurAdi,
+})
+
+function App() {
+  const [currentStep, setCurrentStep] = useState(1)
+  const [config, setConfig] = useState(() => ({
+    ...DEFAULT_CONFIG,
+    ...mapProfileToConfig(PROFILE_DEFAULT),
+  }))
+  const [students, setStudents] = useState([])
+  const [grades, setGrades] = useState({})
+  const [bannerMessage, setBannerMessage] = useState('')
+
   // Welcome Modal - sadece ilk açılışta göster
   const [showWelcome, setShowWelcome] = useState(() => {
-    return !sessionStorage.getItem('netanaliz_welcomed')
+    return !loadWelcomeFlag()
   })
 
-  // SessionStorage'a kaydet (her değişiklikte)
   useEffect(() => {
-    try {
-      const dataToSave = {
+    const profileMeta = loadProfileMeta()
+    const projectMeta = loadProjectMeta()
+
+    console.log('storage meta', {
+      profileError: profileMeta.hadError,
+      projectError: projectMeta.hadError,
+    })
+
+    if (profileMeta.hadError || projectMeta.hadError) {
+      setBannerMessage('Kayıt geri yüklenemedi, yeni oturum başlatıldı.')
+      const timer = setTimeout(() => setBannerMessage(''), 5000)
+      return () => clearTimeout(timer)
+    }
+
+    const safeProfile = normalizeProfile(profileMeta.data || PROFILE_DEFAULT)
+    const projectState = projectMeta.data || null
+
+    if (projectState && projectState.config) {
+      setConfig({
+        ...DEFAULT_CONFIG,
+        ...mapProfileToConfig(safeProfile),
+        ...projectState.config,
+      })
+      setStudents(projectState.students || [])
+      setGrades(projectState.grades || {})
+      setCurrentStep(projectState.currentStep || 1)
+      return undefined
+    }
+
+    setConfig({
+      ...DEFAULT_CONFIG,
+      ...mapProfileToConfig(safeProfile),
+    })
+    setStudents([])
+    setGrades({})
+    setCurrentStep(1)
+
+    return undefined
+  }, [])
+
+  const profileData = useMemo(() => ({
+    il: toSafeString(config.city),
+    ilce: toSafeString(config.district),
+    okulAdi: toSafeString(config.schoolName),
+    sinifAdi: toSafeString(config.gradeLevel),
+    dersAdi: toSafeString(config.courseName),
+    sinavAdi: toSafeString(config.examName),
+    examDate: toSafeString(config.examDate),
+    ogretmenAdi: toSafeString(config.teacherName),
+    mudurAdi: toSafeString(config.principalName),
+  }), [
+    config.city,
+    config.district,
+    config.schoolName,
+    config.gradeLevel,
+    config.courseName,
+    config.examName,
+    config.examDate,
+    config.teacherName,
+    config.principalName,
+  ])
+
+  // localStorage'a kaydet (500ms debounce)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const projectSaved = saveProjectState({
         currentStep,
         config,
         students,
         grades,
-        savedAt: Date.now()
+      })
+      if (!projectSaved) {
+        setBannerMessage((prev) => prev || 'Tarayıcı kaydetmeye izin vermedi.')
       }
-      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave))
-    } catch (e) {
-      console.warn('SessionStorage yazma hatası:', e)
-    }
+    }, 500)
+    return () => clearTimeout(timer)
   }, [currentStep, config, students, grades])
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const profileSaved = saveProfile(profileData)
+      if (!profileSaved) {
+        setBannerMessage((prev) => prev || 'Tarayıcı kaydetmeye izin vermedi.')
+      }
+    }, 500)
+    return () => clearTimeout(timer)
+  }, [profileData])
 
   const handleConfigChange = useCallback((updates) => {
     setConfig((prev) => ({ ...prev, ...updates }))
@@ -89,11 +197,13 @@ function App() {
 
   // Yeni analiz - tüm veriyi sıfırla
   const handleNewAnalysis = useCallback(() => {
-    setConfig(DEFAULT_CONFIG)
+    const latestProfileMeta = loadProfileMeta()
+    const latestProfile = normalizeProfile(latestProfileMeta.data || PROFILE_DEFAULT)
+    setConfig({ ...DEFAULT_CONFIG, ...mapProfileToConfig(latestProfile) })
     setStudents([])
     setGrades({})
     setCurrentStep(1)
-    sessionStorage.removeItem(STORAGE_KEY)
+    clearProjectState()
   }, [])
 
   // Geri gitme fonksiyonu
@@ -112,6 +222,19 @@ function App() {
 
   return (
     <div className="min-h-screen bg-[#F5F5F7] flex flex-col">
+      {bannerMessage && (
+        <div className="bg-amber-50 border-b border-amber-200 text-amber-800 text-sm px-4 py-2 flex items-center justify-between">
+          <span>{bannerMessage}</span>
+          <button
+            type="button"
+            onClick={() => setBannerMessage('')}
+            className="text-amber-700 hover:text-amber-900 text-xs font-medium"
+          >
+            Kapat
+          </button>
+        </div>
+      )}
+
       {/* Welcome Modal - Sadece ilk açılışta */}
       {showWelcome && (
         <WelcomeModal onClose={() => setShowWelcome(false)} />
