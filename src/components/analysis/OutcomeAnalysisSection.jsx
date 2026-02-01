@@ -1,4 +1,8 @@
-import React, { useMemo } from 'react'
+import React, { useMemo, useState } from 'react'
+import { Button } from '../ui/Button'
+import { Download, Printer } from 'lucide-react'
+import { exportOutcomeAnalysisPDF, exportRemedialListPDF } from '../report/pdfExport'
+
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/Card'
 import { Target, CheckCircle2, XCircle, Users } from 'lucide-react'
 import {
@@ -23,6 +27,35 @@ export const OutcomeAnalysisSection = ({ analysis, config }) => {
         }))
     }, [analysis, outcomes])
 
+    const [isExportingOutcome, setIsExportingOutcome] = useState(false)
+    const [isExportingRemedial, setIsExportingRemedial] = useState(false)
+
+    const handlePrint = () => window.print()
+
+    const handleDownloadOutcomePDF = async () => {
+        try {
+            setIsExportingOutcome(true)
+            await exportOutcomeAnalysisPDF({ analysis, config })
+        } catch (error) {
+            console.error(error)
+            alert('PDF oluşturulamadı: ' + error.message)
+        } finally {
+            setIsExportingOutcome(false)
+        }
+    }
+
+    const handleDownloadRemedialPDF = async () => {
+        try {
+            setIsExportingRemedial(true)
+            await exportRemedialListPDF({ analysis, config })
+        } catch (error) {
+            console.error(error)
+            alert('PDF oluşturulamadı: ' + error.message)
+        } finally {
+            setIsExportingRemedial(false)
+        }
+    }
+
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
             <div>
@@ -32,12 +65,32 @@ export const OutcomeAnalysisSection = ({ analysis, config }) => {
 
             {/* Kazanım Grafiği */}
             <Card className="border border-slate-200 shadow-sm">
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <Target className="w-5 h-5 text-emerald-500" />
-                        Kazanım Başarı Oranları
-                    </CardTitle>
-                    <CardDescription>Her kazanım için başarılı ve başarısız öğrenci sayıları</CardDescription>
+                <CardHeader className="flex flex-row items-center justify-between">
+                    <div>
+                        <CardTitle className="flex items-center gap-2">
+                            <Target className="w-5 h-5 text-emerald-500" />
+                            Kazanım Başarı Oranları
+                        </CardTitle>
+                        <CardDescription>Her kazanım için başarılı ve başarısız öğrenci sayıları</CardDescription>
+                    </div>
+                    <div className="flex items-center gap-2 no-print">
+                        <Button variant="outline" size="sm" onClick={handlePrint} className="h-8">
+                            <Printer className="w-3 h-3 mr-2" /> Yazdır
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleDownloadOutcomePDF}
+                            disabled={isExportingOutcome}
+                            className="h-8 border-blue-200 text-blue-700 hover:bg-blue-50"
+                        >
+                            {isExportingOutcome ? 'Hazırlanıyor...' : (
+                                <>
+                                    <Download className="w-3 h-3 mr-2" /> PDF İndir
+                                </>
+                            )}
+                        </Button>
+                    </div>
                 </CardHeader>
                 <CardContent>
                     <div className="h-[400px] w-full">
@@ -107,14 +160,34 @@ export const OutcomeAnalysisSection = ({ analysis, config }) => {
 
             {/* Telafi Listesi (Failure Matrix) */}
             <div className="p-6 bg-slate-50 rounded-2xl border border-slate-200">
-                <div className="flex items-center justify-between mb-6">
-                    <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                        <Users className="w-5 h-5 text-red-500" />
-                        Telafi Listesi
-                    </h3>
-                    <span className="text-xs font-medium px-2 py-1 bg-white border border-slate-200 rounded text-slate-500">
-                        Baraj: %{masteryThreshold}
-                    </span>
+                <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
+                    <div className="flex items-center gap-4">
+                        <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                            <Users className="w-5 h-5 text-red-500" />
+                            Telafi Listesi
+                        </h3>
+                        <span className="text-xs font-medium px-2 py-1 bg-white border border-slate-200 rounded text-slate-500">
+                            Baraj: %{masteryThreshold}
+                        </span>
+                    </div>
+                    <div className="flex items-center gap-2 no-print">
+                        <Button variant="outline" size="sm" onClick={handlePrint} className="h-8 bg-white">
+                            <Printer className="w-3 h-3 mr-2" /> Yazdır
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleDownloadRemedialPDF}
+                            disabled={isExportingRemedial}
+                            className="h-8 bg-white border-red-200 text-red-700 hover:bg-red-50"
+                        >
+                            {isExportingRemedial ? 'Hazırlanıyor...' : (
+                                <>
+                                    <Download className="w-3 h-3 mr-2" /> Liste PDF
+                                </>
+                            )}
+                        </Button>
+                    </div>
                 </div>
 
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">

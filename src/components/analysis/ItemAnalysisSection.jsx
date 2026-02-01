@@ -1,12 +1,30 @@
-import React from 'react'
+import React, { useState } from 'react'
+import { Button } from '../ui/Button'
+import { Printer, Download } from 'lucide-react'
+import { exportItemAnalysisPDF } from '../report/pdfExport'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/Card'
 import { BarChart3 } from 'lucide-react'
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell
 } from 'recharts'
 
-export const ItemAnalysisSection = ({ analysis }) => {
+export const ItemAnalysisSection = ({ analysis, config }) => {
+    const [isExporting, setIsExporting] = useState(false)
     const items = analysis?.questions ?? []
+
+    const handleDownloadPDF = async () => {
+        try {
+            setIsExporting(true)
+            await exportItemAnalysisPDF({ analysis, config })
+        } catch (error) {
+            console.error(error)
+            alert('PDF oluşturulamadı: ' + error.message)
+        } finally {
+            setIsExporting(false)
+        }
+    }
+
+    const handlePrint = () => window.print()
 
     const CustomTooltip = ({ active, payload, label }) => {
         if (active && payload && payload.length) {
@@ -25,9 +43,29 @@ export const ItemAnalysisSection = ({ analysis }) => {
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
-            <div>
-                <h2 className="text-2xl font-bold text-slate-900">Soru Analizi</h2>
-                <p className="text-slate-500">Soru bazında başarı ve ayırt edicilik (zorluk) analizi</p>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h2 className="text-2xl font-bold text-slate-900">Soru Analizi</h2>
+                    <p className="text-slate-500">Soru bazında başarı ve ayırt edicilik (zorluk) analizi</p>
+                </div>
+                <div className="flex items-center gap-2 no-print">
+                    <Button variant="outline" size="sm" onClick={handlePrint}>
+                        <Printer className="w-4 h-4 mr-2" /> Yazdır
+                    </Button>
+                    <Button
+                        variant="default"
+                        size="sm"
+                        onClick={handleDownloadPDF}
+                        disabled={isExporting}
+                        className="bg-blue-600 hover:bg-blue-700"
+                    >
+                        {isExporting ? 'Hazırlanıyor...' : (
+                            <>
+                                <Download className="w-4 h-4 mr-2" /> PDF İndir
+                            </>
+                        )}
+                    </Button>
+                </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -88,8 +126,8 @@ export const ItemAnalysisSection = ({ analysis }) => {
                                     <td className="px-4 py-3 text-center text-slate-900 font-medium">{item.avgScore.toFixed(1)}</td>
                                     <td className="px-4 py-3 text-right">
                                         <span className={`inline-block px-2 py-0.5 rounded textxs font-bold ${item.difficulty > 70 ? 'bg-emerald-100 text-emerald-700' :
-                                                item.difficulty > 40 ? 'bg-amber-100 text-amber-700' :
-                                                    'bg-red-100 text-red-700'
+                                            item.difficulty > 40 ? 'bg-amber-100 text-amber-700' :
+                                                'bg-red-100 text-red-700'
                                             }`}>
                                             %{item.difficulty.toFixed(0)}
                                         </span>

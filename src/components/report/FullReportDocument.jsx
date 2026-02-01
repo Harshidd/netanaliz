@@ -471,7 +471,7 @@ const HorizontalBarChart = ({ data = [], maxBars = 10 }) => {
 // SAYFA 1: ÖZET + ANALİZ (Öğrenci Listesi YOK)
 // ============================================
 
-const SummaryAndAnalysisPage = ({ analysis, config }) => {
+export const SummaryAndAnalysisPage = ({ analysis, config }) => {
     const students = sortStudentsByNo(analysis?.studentResults ?? []);
     const threshold = toNum(config?.generalPassingScore ?? config?.passScore ?? 50);
     const stats = calculateStats(students);
@@ -654,7 +654,7 @@ const SummaryAndAnalysisPage = ({ analysis, config }) => {
 // SAYFA 2-3: TAM SINIF LİSTESİ
 // ============================================
 
-const ClassListPages = ({ analysis, config }) => {
+export const ClassListPages = ({ analysis, config }) => {
     const threshold = toNum(config?.generalPassingScore ?? config?.passScore ?? 50);
     const students = sortStudentsByNo(analysis?.studentResults ?? []);
     // Maksimum 20 soru gösterelim, taşma olmasın
@@ -779,7 +779,7 @@ const ClassListPages = ({ analysis, config }) => {
 // SAYFA 4: TELAFİ LİSTESİ (Ayrı Sayfa)
 // ============================================
 
-const RemedialPage = ({ analysis, config }) => {
+export const RemedialPage = ({ analysis, config }) => {
     const outcomes = Array.isArray(analysis?.outcomes) ? analysis.outcomes : [];
     const configOutcomes = Array.isArray(config?.outcomes) ? config.outcomes : [];
     const threshold = toNum(config?.generalPassingScore ?? config?.passScore ?? 50);
@@ -847,7 +847,7 @@ const RemedialPage = ({ analysis, config }) => {
 // KAZANIM BAŞARI GRAFİĞİ SAYFASI
 // ============================================
 
-const OutcomeSuccessPage = ({ analysis, config }) => {
+export const OutcomeSuccessPage = ({ analysis, config }) => {
     const outcomes = Array.isArray(analysis?.outcomes) ? analysis.outcomes : [];
     const students = Array.isArray(analysis?.studentResults) ? analysis.studentResults : [];
     const configOutcomes = Array.isArray(config?.outcomes) ? config.outcomes : [];
@@ -979,6 +979,86 @@ const OutcomeSuccessPage = ({ analysis, config }) => {
             <Footer schoolName={config?.schoolName} />
         </Page>
     );
+};
+
+// ============================================
+// SORU ANALİZİ (DETAYLI LİSTE) SAYFASI
+// ============================================
+
+export const ItemAnalysisPage = ({ analysis, config }) => {
+    const questions = Array.isArray(analysis?.questions) ? analysis.questions : [];
+
+    // A4 Portrait: ~750pt available height. ~30-35 items per page.
+    // If there are many questions, we might need pagination, but let's assume one page fits for now or use Map directly which wraps automatically in react-pdf if not inside a fixed View?
+    // React-PDF View doesn't auto-wrap across pages like that unless using Wrap. Text does.
+    // Ideally we chunk it like ClassListPages. 
+
+    // Let's assume standard test length (20-40 questions) fits in 1-2 pages.
+    // We will use similar logic to ClassListPages for chunking.
+
+    const ROWS_PER_PAGE = 35;
+    const pages = chunk(questions, ROWS_PER_PAGE);
+
+    if (questions.length === 0) return null;
+
+    // Renkler ve Stiller (Component içinde duplicate etmeyelim, module scope'tan alır)
+    // colors ve styles upper scope'da tanımlı.
+
+    return pages.map((rows, pageIdx) => (
+        <Page key={`item-page-${pageIdx}`} size="A4" style={styles.page}>
+            <Header title={`Soru Analizi Raporu (${pageIdx + 1}/${pages.length})`} config={config} />
+
+            <View style={{ marginBottom: 10 }}>
+                <Text style={{ fontSize: 9, color: colors.muted }}>
+                    Her bir sorunun ayırt edicilik düzeyi ve doğru cevaplanma oranı aşağıdaki gibidir.
+                </Text>
+            </View>
+
+            <View style={[styles.table, { borderWidth: 1, borderColor: colors.border }]}>
+                <View style={[styles.trHead, { backgroundColor: colors.bgAlt }]}>
+                    <Text style={[styles.th, { width: "10%", textAlign: "center" }]}>No</Text>
+                    <Text style={[styles.th, { width: "15%", textAlign: "center" }]}>Max Puan</Text>
+                    <Text style={[styles.th, { width: "15%", textAlign: "center" }]}>Ortalama</Text>
+                    <Text style={[styles.th, { width: "40%", textAlign: "left", paddingLeft: 8 }]}>Zorluk Seviyesi</Text>
+                    <Text style={[styles.th, { width: "20%", textAlign: "center" }]}>Başarı %</Text>
+                </View>
+
+                {rows.map((q, i) => {
+                    const globalIdx = pageIdx * ROWS_PER_PAGE + i + 1;
+                    const maxScore = toNum(q?.maxScore, 10);
+                    const avgScore = toNum(q?.avgScore, 0);
+                    const difficulty = maxScore > 0 ? (avgScore / maxScore) * 100 : 0;
+
+                    let diffText = "Orta";
+                    let diffColor = colors.warning;
+
+                    if (difficulty > 70) { diffText = "Kolay / Çok Başarılı"; diffColor = colors.success; }
+                    else if (difficulty < 40) { diffText = "Zor / Düşük Başarı"; diffColor = colors.danger; }
+
+                    const bgColor = i % 2 === 0 ? "#fff" : colors.bgAlt;
+
+                    return (
+                        <View key={`qrow-${globalIdx}`} style={[styles.tr, { backgroundColor: bgColor, alignItems: "center" }]}>
+                            <Text style={[styles.td, { width: "10%", textAlign: "center", fontWeight: "bold" }]}>{q.qNo || globalIdx}</Text>
+                            <Text style={[styles.td, { width: "15%", textAlign: "center" }]}>{maxScore}</Text>
+                            <Text style={[styles.td, { width: "15%", textAlign: "center" }]}>{avgScore.toFixed(2)}</Text>
+                            <View style={[styles.td, { width: "40%", paddingLeft: 8 }]}>
+                                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                                    <View style={{ width: 60, height: 4, backgroundColor: colors.border, borderRadius: 2 }}>
+                                        <View style={{ width: `${difficulty}%`, height: 4, backgroundColor: diffColor, borderRadius: 2 }} />
+                                    </View>
+                                    <Text style={{ fontSize: 8, color: diffColor }}>{diffText}</Text>
+                                </View>
+                            </View>
+                            <Text style={[styles.tdBold, { width: "20%", textAlign: "center", color: diffColor }]}>%{difficulty.toFixed(0)}</Text>
+                        </View>
+                    );
+                })}
+            </View>
+
+            <Footer schoolName={config?.schoolName} />
+        </Page>
+    ));
 };
 
 // ============================================

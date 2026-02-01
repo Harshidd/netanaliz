@@ -1,8 +1,26 @@
-import React from 'react'
+import React, { useState } from 'react'
+import { Button } from '../ui/Button'
+import { Download, Printer } from 'lucide-react'
+import { exportClassListPDF } from '../report/pdfExport'
 
 export const ClassAnalysisSection = ({ analysis, config }) => {
+    const [isExporting, setIsExporting] = useState(false)
     const students = analysis?.studentResults ?? []
     const questions = analysis?.questions ?? []
+
+    const handlePrint = () => window.print()
+
+    const handleDownloadPDF = async () => {
+        try {
+            setIsExporting(true)
+            await exportClassListPDF({ analysis, config })
+        } catch (error) {
+            console.error(error)
+            alert('PDF oluşturulamadı: ' + error.message)
+        } finally {
+            setIsExporting(false)
+        }
+    }
 
     // Sıralama: En düşük puandan en yüksek puana, eşitse numaraya göre
     const sortedStudents = [...students].sort((a, b) => {
@@ -22,9 +40,29 @@ export const ClassAnalysisSection = ({ analysis, config }) => {
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
-            <div>
-                <h2 className="text-2xl font-bold text-slate-900">Sınıf Listesi</h2>
-                <p className="text-slate-500">Tüm öğrencilerin başarı sıralaması (düşükten yükseğe)</p>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h2 className="text-2xl font-bold text-slate-900">Sınıf Listesi</h2>
+                    <p className="text-slate-500">Tüm öğrencilerin başarı sıralaması (düşükten yükseğe)</p>
+                </div>
+                <div className="flex items-center gap-2 no-print">
+                    <Button variant="outline" size="sm" onClick={handlePrint}>
+                        <Printer className="w-4 h-4 mr-2" /> Yazdır
+                    </Button>
+                    <Button
+                        variant="default"
+                        size="sm"
+                        onClick={handleDownloadPDF}
+                        disabled={isExporting}
+                        className="bg-blue-600 hover:bg-blue-700"
+                    >
+                        {isExporting ? 'Hazırlanıyor...' : (
+                            <>
+                                <Download className="w-4 h-4 mr-2" /> PDF İndir
+                            </>
+                        )}
+                    </Button>
+                </div>
             </div>
 
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">

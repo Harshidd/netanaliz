@@ -96,7 +96,7 @@ const AnalysisDashboard = ({ students, grades, questions, config }) => {
           </div>
 
           <div className="flex items-center gap-2">
-            {activeSection !== 'karne' && (
+            {activeSection === 'ozet' && (
               <>
                 <Button variant="outline" size="sm" onClick={handlePrint} className="hidden md:flex">
                   <Printer className="w-4 h-4 mr-2" /> Yazdır
