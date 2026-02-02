@@ -212,7 +212,7 @@ const Header = ({ title, config }) => (
     <View style={styles.header}>
         <View>
             <Text style={styles.h1}>{title}</Text>
-            <Text style={styles.subtitle}>NetAnaliz Sınav Analiz Sistemi</Text>
+            <Text style={styles.subtitle}>BiSınıf Sınav Analiz Sistemi</Text>
         </View>
         <View style={{ alignItems: "flex-end" }}>
             <Text style={styles.subtitle}>{safeText(config?.schoolName)}</Text>
@@ -223,7 +223,7 @@ const Header = ({ title, config }) => (
 
 const Footer = ({ schoolName }) => (
     <View style={styles.footer} fixed>
-        <Text style={styles.footerText}>{safeText(schoolName, "NetAnaliz")}</Text>
+        <Text style={styles.footerText}>{safeText(schoolName, "BiSınıf")}</Text>
         <Text style={styles.footerText} render={({ pageNumber, totalPages }) => `Sayfa ${pageNumber} / ${totalPages}`} />
     </View>
 );

@@ -108,7 +108,7 @@ export const ItemAnalysisSection = ({ analysis, config }) => {
                 </Card>
 
                 {/* Liste */}
-                <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden lg:h-[420px] overflow-y-auto">
+                <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden lg:h-[420px] overflow-y-auto print:h-auto print:overflow-visible print:shadow-none print:border-none">
                     <table className="w-full text-sm text-left">
                         <thead className="bg-slate-50 text-slate-500 font-medium sticky top-0">
                             <tr>

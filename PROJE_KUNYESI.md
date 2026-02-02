@@ -1,4 +1,4 @@
-# 📘 NetAnaliz - Proje Künyesi ve Teknik Dokümantasyon
+# 📘 BiSınıf - Proje Künyesi ve Teknik Dokümantasyon
 
 **Sürüm:** 1.0.0
 **Tür:** İstemci Taraflı Sınav Analiz Uygulaması (Client-Side SPA)

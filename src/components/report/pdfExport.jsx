@@ -38,7 +38,7 @@ const downloadBlob = (blob, filename) => {
 export const exportFullReportPDF = async ({ analysis, config, questions }) => {
     const doc = React.createElement(FullReportDocument, { analysis, config, questions });
     const blob = await pdf(doc).toBlob();
-    downloadBlob(blob, `NetAnaliz_TamRapor_${getDateStamp()}.pdf`);
+    downloadBlob(blob, `BiSınıf_TamRapor_${getDateStamp()}.pdf`);
 };
 
 /**
@@ -48,7 +48,7 @@ export const exportFullReportPDF = async ({ analysis, config, questions }) => {
 export const exportStudentCardsPDF = async ({ analysis, config, students }) => {
     const doc = React.createElement(StudentCardsDocument, { analysis, config, students });
     const blob = await pdf(doc).toBlob();
-    downloadBlob(blob, `NetAnaliz_Karneler_${getDateStamp()}.pdf`);
+    downloadBlob(blob, `BiSınıf_Karneler_${getDateStamp()}.pdf`);
 };
 
 /**
@@ -64,7 +64,7 @@ export const exportSingleStudentPDF = async ({ analysis, config, student }) => {
     const blob = await pdf(doc).toBlob();
     const studentName = student?.name || student?.fullName || 'Ogrenci';
     const safeName = studentName.replace(/[^a-zA-Z0-9]/g, '_');
-    downloadBlob(blob, `NetAnaliz_Karne_${safeName}_${getDateStamp()}.pdf`);
+    downloadBlob(blob, `BiSınıf_Karne_${safeName}_${getDateStamp()}.pdf`);
 };
 
 // ============================================
@@ -81,7 +81,7 @@ export const exportClassListPDF = async ({ analysis, config }) => {
         </Document>
     );
     const blob = await pdf(doc).toBlob();
-    downloadBlob(blob, `NetAnaliz_SinifListesi_${getDateStamp()}.pdf`);
+    downloadBlob(blob, `BiSınıf_SinifListesi_${getDateStamp()}.pdf`);
 };
 
 /**
@@ -94,7 +94,7 @@ export const exportOutcomeAnalysisPDF = async ({ analysis, config }) => {
         </Document>
     );
     const blob = await pdf(doc).toBlob();
-    downloadBlob(blob, `NetAnaliz_KazanimAnalizi_${getDateStamp()}.pdf`);
+    downloadBlob(blob, `BiSınıf_KazanimAnalizi_${getDateStamp()}.pdf`);
 };
 
 /**
@@ -107,7 +107,7 @@ export const exportRemedialListPDF = async ({ analysis, config }) => {
         </Document>
     );
     const blob = await pdf(doc).toBlob();
-    downloadBlob(blob, `NetAnaliz_TelafiListesi_${getDateStamp()}.pdf`);
+    downloadBlob(blob, `BiSınıf_TelafiListesi_${getDateStamp()}.pdf`);
 };
 
 /**
@@ -120,7 +120,7 @@ export const exportItemAnalysisPDF = async ({ analysis, config }) => {
         </Document>
     );
     const blob = await pdf(doc).toBlob();
-    downloadBlob(blob, `NetAnaliz_SoruAnalizi_${getDateStamp()}.pdf`);
+    downloadBlob(blob, `BiSınıf_SoruAnalizi_${getDateStamp()}.pdf`);
 };
 
 /**
@@ -133,5 +133,5 @@ export const exportSummaryPDF = async ({ analysis, config, questions }) => {
         </Document>
     );
     const blob = await pdf(doc).toBlob();
-    downloadBlob(blob, `NetAnaliz_OzetRapor_${getDateStamp()}.pdf`);
+    downloadBlob(blob, `BiSınıf_OzetRapor_${getDateStamp()}.pdf`);
 };

@@ -1,6 +1,52 @@
-const PROFILE_STORAGE_KEY = 'netanaliz_profile'
-const PROJECT_STATE_STORAGE_KEY = 'netanaliz_project_state'
-const WELCOME_FLAG_KEY = 'netanaliz_welcomed'
+const PROFILE_STORAGE_KEY = 'bisinif_profile'
+const PROJECT_STATE_STORAGE_KEY = 'bisinif_project_state'
+const WELCOME_FLAG_KEY = 'bisinif_welcomed'
+
+const LEGACY_KEYS = {
+  profile: 'netanaliz_profile',
+  project: 'netanaliz_project_state',
+  welcome: 'netanaliz_welcomed'
+}
+
+// --------------------------------------------------------------------------
+// MIGRATION LAYER (Idempotent)
+// Eski 'netanaliz' verilerini yeni 'bisinif' anahtarlarına taşı
+// --------------------------------------------------------------------------
+const migrateLegacyData = () => {
+  try {
+    // 1. Profile Migration
+    if (!localStorage.getItem(PROFILE_STORAGE_KEY)) {
+      const legacyProfile = localStorage.getItem(LEGACY_KEYS.profile)
+      if (legacyProfile) {
+        localStorage.setItem(PROFILE_STORAGE_KEY, legacyProfile)
+        console.log('[Migration] Profile data migrated to BiSınıf format.')
+      }
+    }
+
+    // 2. Project State Migration
+    if (!localStorage.getItem(PROJECT_STATE_STORAGE_KEY)) {
+      const legacyProject = localStorage.getItem(LEGACY_KEYS.project)
+      if (legacyProject) {
+        localStorage.setItem(PROJECT_STATE_STORAGE_KEY, legacyProject)
+        console.log('[Migration] Project state migrated to BiSınıf format.')
+      }
+    }
+
+    // 3. Welcome Flag Migration
+    if (localStorage.getItem(WELCOME_FLAG_KEY) !== 'true') {
+      const legacyWelcome = localStorage.getItem(LEGACY_KEYS.welcome)
+      if (legacyWelcome === 'true') {
+        localStorage.setItem(WELCOME_FLAG_KEY, 'true')
+        console.log('[Migration] Welcome flag migrated.')
+      }
+    }
+  } catch (err) {
+    console.warn('[Migration] Failed to migrate legacy data:', err)
+  }
+}
+
+// Execute migration immediately on load
+migrateLegacyData()
 
 const PROFILE_VERSION = 1
 const PROJECT_STATE_VERSION = 1

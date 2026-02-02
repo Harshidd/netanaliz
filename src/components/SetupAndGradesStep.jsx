@@ -5,7 +5,7 @@ import { Label } from './ui/Label'
 import { Button } from './ui/Button'
 import { Alert, AlertDescription } from './ui/Alert'
 import { AlertTriangle } from 'lucide-react'
-import ExcelUploader from './ExcelUploader'
+import StudentImporter from './StudentImporter'
 import GradingTable from './GradingTable'
 
 const toNumber = (value) => {
@@ -219,11 +219,11 @@ const SetupAndGradesStep = ({
 
             {/* Right: Student Import Toolbar */}
             <div className="h-full">
-              <ExcelUploader
-                onStudentsImported={onStudentsChange}
+              <StudentImporter
+                onImport={onStudentsChange} // Pass raw update to Exam State
                 existingStudents={students}
-                showNavigation={false}
                 compact={true}
+                target="exam" // Updates Roster automatically too
               />
             </div>
           </div>

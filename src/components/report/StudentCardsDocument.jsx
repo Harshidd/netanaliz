@@ -350,7 +350,7 @@ const StudentCardPage = ({ student, config, analysis, index, total }) => {
 
             {/* Footer */}
             <View style={styles.footer} fixed>
-                <Text style={styles.footerText}>{safeText(config?.schoolName, "NetAnaliz")} • {safeText(config?.className)}</Text>
+                <Text style={styles.footerText}>{safeText(config?.schoolName, "BiSınıf")} • {safeText(config?.className)}</Text>
                 <Text style={styles.footerText}>Sayfa {index + 1} / {total}</Text>
             </View>
         </Page>

@@ -66,7 +66,7 @@ const AnalysisDashboard = ({ students, grades, questions, config }) => {
     })))
     const wb = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(wb, ws, "Sinif_Listesi")
-    XLSX.writeFile(wb, "NetAnaliz_Sinif_Listesi.xlsx")
+    XLSX.writeFile(wb, "BiSınıf_Sinif_Listesi.xlsx")
   }
 
   const renderSection = () => {
@@ -83,14 +83,14 @@ const AnalysisDashboard = ({ students, grades, questions, config }) => {
   return (
     <div className="min-h-screen bg-slate-50/50 pb-20">
       {/* Top Header */}
-      <div className="bg-white border-b border-slate-200 sticky top-0 z-30 px-4 md:px-8 py-4 shadow-sm no-print screen-only">
+      <div className="bg-white border-b border-slate-200 sticky top-0 z-30 px-4 md:px-8 py-4 shadow-sm no-print">
         <div className="max-w-[1600px] mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-blue-100 rounded-lg">
               <LayoutGrid className="w-6 h-6 text-blue-600" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-slate-900 leading-none">NetAnaliz Raporu</h1>
+              <h1 className="text-xl font-bold text-slate-900 leading-none">BiSınıf Raporu</h1>
               <p className="text-xs text-slate-500 mt-1">{config.schoolName || 'Okul Adı Girilmedi'} • {new Date().toLocaleDateString('tr-TR')}</p>
             </div>
           </div>
@@ -123,7 +123,7 @@ const AnalysisDashboard = ({ students, grades, questions, config }) => {
         </div>
       </div>
 
-      <div className="max-w-[1600px] mx-auto px-4 md:px-8 py-8 screen-only">
+      <div className="max-w-[1600px] mx-auto px-4 md:px-8 py-8">
         <div className="flex flex-col md:flex-row gap-8 items-start">
 
           {/* Sidebar */}
