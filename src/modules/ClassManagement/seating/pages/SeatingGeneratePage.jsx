@@ -16,7 +16,7 @@ import { classRepo } from '../../repo/classRepo'
 import { pdf } from '@react-pdf/renderer'
 import { ClassSeatingPDF } from '../report/ClassSeatingPDF'
 import { generateReportData } from '../report/reportLogic'
-import { Settings, Play, Save, Users, RefreshCw, LayoutGrid, Armchair, Lock, Unlock, AlertCircle, AlertTriangle, RotateCcw, FileText, Download } from 'lucide-react'
+import { Settings, Play, Save, Users, RefreshCw, LayoutGrid, Armchair, Lock, Unlock, AlertCircle, AlertTriangle, RotateCcw, FileText, Download, History, BarChart2 } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 
 // --- DRAGGABLE ITEMS ---
@@ -304,7 +304,16 @@ export default function SeatingGeneratePage() {
                 setPinnedSeats(result.pinnedSeatIds)
                 setStats(result.stats)
                 setViolations(result.violations || [])
+
+                // Save and Push to History
                 seatingRepo.savePlan(result)
+                seatingRepo.pushToHistory({
+                    ...result,
+                    setup: setup,
+                    rows: setup.rows,
+                    cols: setup.cols
+                }, true) // isAuto = true
+
                 setMessage('Yeni plan oluşturuldu')
                 setTimeout(() => setMessage(null), 2000)
             }
@@ -425,6 +434,18 @@ export default function SeatingGeneratePage() {
                         <p className="text-xs text-gray-500">Otomatik yerleştirin veya sürükleyip bırakarak düzenleyin.</p>
                     </div>
                     <div className="flex gap-2">
+                        <Link
+                            to="history"
+                            className="flex items-center gap-2 bg-white border border-gray-200 text-gray-700 hover:text-gray-900 hover:bg-gray-50 px-4 py-2 rounded-xl text-sm font-medium transition-colors"
+                        >
+                            <History className="w-4 h-4" /> Geçmiş
+                        </Link>
+                        <Link
+                            to="analytics"
+                            className="flex items-center gap-2 bg-white border border-gray-200 text-gray-700 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 px-4 py-2 rounded-xl text-sm font-medium transition-colors"
+                        >
+                            <BarChart2 className="w-4 h-4" /> Analiz
+                        </Link>
                         <button
                             id="btn-report"
                             onClick={handleDownloadReport}
@@ -532,6 +553,6 @@ export default function SeatingGeneratePage() {
                 ) : null}
             </DragOverlay>
 
-        </DndContext>
+        </DndContext >
     )
 }

@@ -1,7 +1,10 @@
 export const SEATING_KEYS = {
     setup: 'bisinif_class_seating_setup_v1',
     rules: 'bisinif_class_seating_rules_v1',
-    plan: 'bisinif_class_seating_plan_v2' // Upgraded to v2
+    plan: 'bisinif_class_seating_plan_v2', // Upgraded to v2
+    history: 'bisinif_class_seating_history_v1',
+    analyticsMap: 'bisinif_class_analytics_map_v1',
+    selectedExam: 'bisinif_class_analytics_selected_exam_v1'
 }
 
 const readStorage = (key, defaultValue) => {
@@ -82,5 +85,118 @@ export const seatingRepo = {
             manualMoves: plan.manualMoves || 0,
             updatedAt: new Date().toISOString()
         })
-    }
+    },
+
+    // 4. History
+    loadHistory: () => {
+        const history = readStorage(SEATING_KEYS.history, [])
+        // Migration: Ensure titles exist
+        return history.map(item => {
+            if (!item.title) {
+                const date = new Date(item.createdAt)
+                return {
+                    ...item,
+                    title: `Oturma Planı – ${date.toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit' })}`
+                }
+            }
+            return item
+        })
+    },
+
+    pushToHistory: (plan, isAuto = false) => {
+        let history = readStorage(SEATING_KEYS.history, [])
+        const last = history[0]
+
+        // Duplicate Guard
+        const isDuplicate = last &&
+            JSON.stringify(last.layout) === JSON.stringify(plan.assignments) &&
+            JSON.stringify(last.pinnedSeatIds) === JSON.stringify(plan.pinnedSeatIds) &&
+            JSON.stringify(last.setup) === JSON.stringify(plan.setup)
+
+        if (isDuplicate) {
+            const updatedLast = {
+                ...last,
+                updatedAt: new Date().toISOString(),
+                // If it was auto and now we manually save, it might deserve promotion, but sticking to update time for now
+            }
+            const newHistory = [updatedLast, ...history.slice(1)]
+            return writeStorage(SEATING_KEYS.history, newHistory)
+        }
+
+        const date = new Date()
+        const snapshot = {
+            id: crypto.randomUUID(),
+            createdAt: date.toISOString(),
+            title: plan.title || `Oturma Planı – ${date.toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit' })}`,
+            rows: plan.rows || plan.setup?.rows || 0,
+            cols: plan.cols || plan.setup?.cols || 0,
+            layout: plan.assignments || {},
+            pinnedSeatIds: plan.pinnedSeatIds || [],
+            manualMoves: plan.manualMoves || 0,
+            stats: plan.stats || {},
+            setup: plan.setup || null,
+            isAuto: isAuto,
+            isPinned: false
+        }
+
+        // --- RETENTION POLICY ---
+        // 1. Add new item
+        let newHistory = [snapshot, ...history]
+
+        // 2. Limit "Auto" items: Keep max 10 auto items per day
+        if (isAuto) {
+            const todayStr = date.toISOString().slice(0, 10) // YYYY-MM-DD
+            const todaysAuto = newHistory.filter(h => h.isAuto && h.createdAt.startsWith(todayStr))
+
+            if (todaysAuto.length > 10) {
+                // Remove the oldest auto item from today
+                // Since list is sorted new->old, the last one in todaysAuto is the oldest
+                const oldestId = todaysAuto[todaysAuto.length - 1].id
+                newHistory = newHistory.filter(h => h.id !== oldestId)
+            }
+        }
+
+        // 3. Global Safety Limit (50) - BUT protect pinned items
+        if (newHistory.length > 50) {
+            // Try to remove unpinned/auto items from the end first
+            // Create a list of candidates to remove (not pinned)
+            const candidates = newHistory.filter(h => !h.isPinned)
+            if (candidates.length > 0) {
+                // Remove oldest candidate (last one)
+                const toRemove = candidates[candidates.length - 1]
+                newHistory = newHistory.filter(h => h.id !== toRemove.id)
+            } else {
+                // If all 50 are pinned, unfortunately start dropping oldest pinned (hard limit)
+                newHistory = newHistory.slice(0, 50)
+            }
+        }
+
+        return writeStorage(SEATING_KEYS.history, newHistory)
+    },
+
+    updateHistoryItemPinned: (id, isPinned) => {
+        const history = readStorage(SEATING_KEYS.history, [])
+        const newHistory = history.map(item => item.id === id ? { ...item, isPinned } : item)
+        return writeStorage(SEATING_KEYS.history, newHistory)
+    },
+
+    deleteHistoryItem: (id) => {
+        const history = readStorage(SEATING_KEYS.history, [])
+        const newHistory = history.filter(item => item.id !== id)
+        return writeStorage(SEATING_KEYS.history, newHistory)
+    },
+
+    updateHistoryItemTitle: (id, newTitle) => {
+        const history = readStorage(SEATING_KEYS.history, [])
+        const newHistory = history.map(item => item.id === id ? { ...item, title: newTitle } : item)
+        return writeStorage(SEATING_KEYS.history, newHistory)
+    },
+
+    // 5. Analytics Mapping (Read/Write for Correction)
+    loadAnalyticsMap: () => readStorage(SEATING_KEYS.analyticsMap, {}),
+    saveAnalyticsMap: (map) => writeStorage(SEATING_KEYS.analyticsMap, map),
+
+    // 6. UI Preference
+    loadSelectedExamId: () => readStorage(SEATING_KEYS.selectedExam, null),
+    saveSelectedExamId: (id) => writeStorage(SEATING_KEYS.selectedExam, id)
 }

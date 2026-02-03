@@ -4,6 +4,8 @@ import { ArrowLeft, Users, LayoutDashboard, TableProperties } from 'lucide-react
 import StudentList from './pages/StudentList'
 import RosterPage from './pages/RosterPage'
 import SeatingGeneratePage from './seating/pages/SeatingGeneratePage'
+import SeatingHistoryPage from './seating/pages/SeatingHistoryPage'
+import SeatingAnalyticsPage from './seating/pages/SeatingAnalyticsPage'
 import { Routes, Route } from 'react-router-dom'
 
 // Placeholder Dashboard
@@ -67,6 +69,8 @@ export default function ClassManagement() {
                     <Route path="students" element={<StudentList />} />
                     <Route path="roster" element={<RosterPage />} />
                     <Route path="seating" element={<SeatingGeneratePage />} />
+                    <Route path="seating/history" element={<SeatingHistoryPage />} />
+                    <Route path="seating/analytics" element={<SeatingAnalyticsPage />} />
                 </Routes>
             </main>
         </div>
