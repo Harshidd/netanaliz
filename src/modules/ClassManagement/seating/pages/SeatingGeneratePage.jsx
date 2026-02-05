@@ -268,6 +268,7 @@ export default function SeatingGeneratePage() {
     const [students, setStudents] = useState([])
     const [activeId, setActiveId] = useState(null)
     const [message, setMessage] = useState(null)
+    const [generationNonce, setGenerationNonce] = useState(0)
 
     const sensors = useSensors(
         useSensor(MouseSensor, { activationConstraint: { distance: 10 } }),
@@ -338,7 +339,9 @@ export default function SeatingGeneratePage() {
         setTimeout(() => {
             seatingRepo.saveSetup(setup)
             const currentPlan = { assignments, pinnedSeatIds: pinnedSeats }
-            const result = generateSeatingPlan(currentPlan, mode)
+            const newNonce = generationNonce + 1
+            setGenerationNonce(newNonce)
+            const result = generateSeatingPlan(currentPlan, mode, newNonce)
 
             if (result.error) {
                 alert(result.error)

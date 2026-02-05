@@ -122,7 +122,7 @@ export const classRepo = {
             }
         })
 
-        saveRoster(roster)
+        saveRoster(roster, true) // Immediate write for bulk import
         return { added: addedCount, updated: updatedCount }
     },
 
@@ -130,20 +130,20 @@ export const classRepo = {
         // 1. Clean Roster
         const roster = loadRoster()
         const filteredRoster = roster.filter(s => s.rosterId !== studentId)
-        saveRoster(filteredRoster)
+        saveRoster(filteredRoster, true) // Immediate write for cascade delete
 
         // 2. Clean Profiles
         const profiles = loadProfiles()
         if (profiles[studentId]) {
             delete profiles[studentId]
-            saveProfiles(profiles)
+            saveProfiles(profiles, true) // Immediate write
         }
 
         // 3. Clean Conflicts
         const conflicts = loadConflicts()
         const filteredConflicts = conflicts.filter(c => c.studentIdA !== studentId && c.studentIdB !== studentId)
         if (conflicts.length !== filteredConflicts.length) {
-            saveConflicts(filteredConflicts)
+            saveConflicts(filteredConflicts, true) // Immediate write
         }
 
         // 4. Cascade to Seating Module

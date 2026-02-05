@@ -13,15 +13,18 @@ Font.register({
 
 // === THEME CONFIG ===
 const THEME = {
-    primary: '#2563EB',      // Rich Blue
-    accentLight: '#DBEAFE',  // Very Light Blue
-    accentSoft: '#BFDBFE',   // Soft Blue
-    warnLight: '#FEF2F2',
-    warnBorder: '#FCA5A5',
-    lockLight: '#FFFBEB',
-    lockBorder: '#FDE68A',
-    textDark: '#1E293B',
-    textLight: '#64748B'
+    primary: '#1E293B',      // Dark Navy (Text)
+    accent: '#334155',       // Slightly Lighter Navy
+    border: '#CBD5E1',       // Standard Border
+    deskBg: '#F8FAFC',       // Very light gray/blue fill for desks
+    deskBorder: '#E2E8F0',
+    deskShadow: '#94A3B8',   // Darker gray for 3D bottom border
+    boardBg: '#1E293B',      // Dark Smart Board
+    badgeBg: '#E0F2FE',      // Light Blue for Number Badge
+    badgeText: '#0369A1',    // Dark Blue for Number Text
+    textDark: '#0F172A',
+    textGray: '#64748B',
+    white: '#FFFFFF'
 }
 
 const styles = StyleSheet.create({
@@ -31,58 +34,45 @@ const styles = StyleSheet.create({
         backgroundColor: '#FFFFFF'
     },
     // --- Layout 1: Scene Plan (Full Scale) ---
-    topAntet: {
+
+    // HEADER (Antet)
+    headerContainer: {
         position: 'absolute',
-        top: 20,
+        top: 25,
         left: 30,
         right: 30,
-        flexDirection: 'row',
+        height: 60,
         justifyContent: 'center',
         alignItems: 'center',
-        borderBottom: `1pt solid #E2E8F0`,
-        paddingBottom: 6,
-        marginBottom: 10
+        borderBottom: `1pt solid ${THEME.border}`,
     },
-    topAntetText: {
-        fontSize: 10,
-        color: '#64748B',
-        fontWeight: 'medium',
-        textTransform: 'uppercase',
-        letterSpacing: 0.5
-    },
-    sceneHeader: {
-        position: 'absolute',
-        top: 50, // Adjusted down
-        left: 30,
-        right: 30,
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'flex-start'
-    },
-    sceneTitleBox: {
-        flexDirection: 'column'
-    },
-    sceneTitle: {
-        fontSize: 14,
+    schoolName: {
+        fontSize: 16,
         fontWeight: 'bold',
         color: THEME.textDark,
         textTransform: 'uppercase',
-        letterSpacing: 1
+        marginBottom: 4
     },
-    sceneSubTitle: {
-        fontSize: 10,
-        color: THEME.textLight,
-        marginTop: 2
+    classNameTitle: {
+        fontSize: 12,
+        fontWeight: 'bold',
+        color: THEME.accent,
+        marginBottom: 4
     },
-    sceneDate: {
+    metaRow: {
+        flexDirection: 'row',
+        gap: 15,
+        alignItems: 'center'
+    },
+    metaText: {
         fontSize: 9,
-        color: '#94A3B8',
-        textAlign: 'right'
+        color: THEME.textGray,
+        fontWeight: 'normal'
     },
 
     // A large container for the classroom "scene"
     sceneContainer: {
-        marginTop: 80, // Increased for new header
+        marginTop: 90,
         flex: 1,
         paddingHorizontal: 30,
         paddingBottom: 40,
@@ -91,52 +81,66 @@ const styles = StyleSheet.create({
 
     // Scene Elements
     boardBar: {
-        width: '60%',
-        height: 12,
-        backgroundColor: THEME.primary,
-        borderRadius: 6,
-        marginBottom: 8,
+        width: '50%',
+        height: 14,
+        backgroundColor: THEME.boardBg, // Dark solid fill
+        borderRadius: 4,
+        marginBottom: 10,
         alignItems: 'center',
-        justifyContent: 'center'
+        justifyContent: 'center',
     },
     boardLabel: {
         color: '#FFF',
         fontSize: 7,
         fontWeight: 'bold',
-        letterSpacing: 1
+        letterSpacing: 2
     },
     teacherDesk: {
         width: 100,
         height: 40,
-        backgroundColor: THEME.accentLight,
-        border: `1pt solid ${THEME.accentSoft}`,
-        borderRadius: 4,
+        backgroundColor: '#F1F5F9', // Light gray wood-ish
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: THEME.border,
+        borderStyle: 'solid',
+        borderBottomWidth: 3, // 3D Effect
+        borderBottomColor: '#CBD5E1',
         alignItems: 'center',
         justifyContent: 'center',
-        marginBottom: 20
+        marginBottom: 30
     },
     teacherLabel: {
-        fontSize: 7,
-        color: THEME.primary,
+        fontSize: 8,
+        color: THEME.textGray,
         fontWeight: 'bold',
         textTransform: 'uppercase'
     },
-    door: {
+
+    // ARCHITECTURAL DOOR (Top-Left)
+    doorArea: {
         position: 'absolute',
-        bottom: 30,
-        right: 30,
+        top: 60, // Near the board/front row
+        left: 30, // Far left
+        width: 50,
+        height: 50,
+    },
+    doorSwing: {
         width: 40,
-        height: 6,
-        backgroundColor: '#CBD5E1',
-        borderRadius: 2
+        height: 40,
+        borderTopLeftRadius: 40, // arc
+        borderTopWidth: 2,
+        borderLeftWidth: 2,
+        borderColor: '#94A3B8', // Architectural Gray
+        borderStyle: 'dashed'
     },
     doorLabel: {
         position: 'absolute',
-        bottom: 38,
-        right: 35,
-        fontSize: 7,
+        top: 15,
+        left: 10,
+        fontSize: 6,
         color: '#94A3B8',
-        textTransform: 'uppercase'
+        fontWeight: 'bold',
+        transform: 'rotate(-45deg)'
     },
 
     row: {
@@ -144,149 +148,82 @@ const styles = StyleSheet.create({
         justifyContent: 'center'
     },
 
-    // Desk Visuals Base
+    // deskBox: The container for the desk (Single or Double)
     deskBox: {
-        backgroundColor: '#FFFFFF',
-        border: '1pt solid #E2E8F0',
-        borderRadius: 8,
+        backgroundColor: THEME.deskBg, // Light Fill
+        borderWidth: 1,
+        borderColor: THEME.deskBorder,
+        borderStyle: 'solid',
+        borderRadius: 8, // Soft corners
         overflow: 'hidden',
-        borderBottomWidth: 3, // Thicker bottom for 3D effect
-        borderBottomColor: '#CBD5E1'
+        borderBottomWidth: 3, // 3D Effect
+        borderBottomColor: THEME.deskShadow // Darker bottom
     },
     deskDouble: { flexDirection: 'row' },
     deskSingle: {},
 
     seat: {
-        width: '50%', // Relative to desk box
+        width: '50%',
         height: '100%',
-        padding: 4,
+        padding: 6,
         alignItems: 'center',
         justifyContent: 'center',
         position: 'relative'
     },
-    seatLeftBorder: { borderRight: '1pt solid #F1F5F9' },
-
-    // Seat States (Backgrounds & Accents)
-    bgEmpty: { backgroundColor: '#F8FAFC' },
-    bgNormal: { backgroundColor: '#FFFFFF' },
-    bgSpecial: { backgroundColor: THEME.accentLight },
-    bgPinned: { backgroundColor: THEME.lockLight },
-
-    // Accent Strips
-    accentStrip: {
-        position: 'absolute',
-        left: 0,
-        top: 0,
-        bottom: 0,
-        width: 4
+    seatLeftBorder: {
+        borderRightWidth: 1,
+        borderRightColor: THEME.deskBorder,
+        borderRightStyle: 'dashed'
     },
-    stripNormal: { backgroundColor: '#E2E8F0' },
-    stripSpecial: { backgroundColor: THEME.primary },
-    stripPinned: { backgroundColor: '#F59E0B' },
-    stripWarn: { backgroundColor: '#EF4444' },
 
-    studentName: {
+    // Clean Backgrounds
+    bgEmpty: { opacity: 0.5 }, // Faded if empty
+    bgNormal: { opacity: 1 },
+
+    // Typography for Student Card
+    badgeContainer: {
+        position: 'absolute',
+        top: 4,
+        right: 4,
+        backgroundColor: THEME.badgeBg,
+        paddingHorizontal: 4,
+        paddingVertical: 1,
+        borderRadius: 4
+    },
+    studentNo: {
+        fontSize: 7,
+        color: THEME.badgeText,
         fontWeight: 'bold',
-        color: THEME.textDark,
+        fontFamily: 'Roboto'
+    },
+
+    nameContainer: {
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: '100%',
+        paddingTop: 8
+    },
+    firstName: {
+        fontWeight: 'bold', // Fixed: 'heavy' causes crash
+        color: THEME.primary,
+        textAlign: 'center',
+        lineHeight: 1.1
+    },
+    lastName: {
+        fontWeight: 'normal',
+        color: THEME.textGray, // Softer contrast
         textAlign: 'center',
         lineHeight: 1.1,
         marginTop: 2
     },
-    studentNo: {
-        color: '#94A3B8',
-        position: 'absolute',
-        top: 4,
-        right: 5
-    },
 
-    // Legend
-    legendBar: {
-        position: 'absolute',
-        bottom: 20,
-        right: 30,
-        flexDirection: 'row',
-        gap: 12
-    },
-    legendItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-    legendDot: { width: 6, height: 6, borderRadius: 3 },
-    legendLabel: { fontSize: 7, color: '#64748B' },
-
-
-    // --- Layout 2: Report Theme ---
-    reportHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: 40,
-        paddingTop: 40,
-        marginBottom: 20
-    },
-    reportTitle: { fontSize: 18, fontWeight: 'bold', color: THEME.textDark },
-    reportSub: { fontSize: 10, color: THEME.primary, fontWeight: 'bold' },
-
-    sectionBox: {
-        marginHorizontal: 40,
-        marginBottom: 16,
-        padding: 15,
-        borderRadius: 8,
-        border: '1pt solid #E2E8F0',
-        backgroundColor: '#FFFFFF'
-    },
-    sectionHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 8,
-        borderBottom: `1pt solid ${THEME.accentLight}`,
-        paddingBottom: 6
-    },
-    sectionTitle: {
-        fontSize: 10,
-        fontWeight: 'bold',
-        color: THEME.primary,
-        textTransform: 'uppercase',
-        letterSpacing: 0.5,
-        marginLeft: 6
-    },
-    bulletText: { fontSize: 10, color: '#334155', lineHeight: 1.6, marginBottom: 2 },
-
-    kpiRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 5 },
-    kpiCard: {
-        flex: 1,
-        backgroundColor: '#F8FAFC',
-        padding: 10,
-        borderRadius: 6,
-        alignItems: 'center',
-        marginHorizontal: 4
-    },
-    kpiVal: { fontSize: 16, fontWeight: 'bold', color: THEME.textDark },
-    kpiLabel: { fontSize: 7, color: '#64748B', marginTop: 2, textTransform: 'uppercase' },
-
-    warningBox: {
-        backgroundColor: '#FEF2F2',
-        borderColor: '#FCA5A5',
-        marginHorizontal: 40,
-        padding: 12,
-        borderRadius: 6,
-        borderWidth: 1,
-        marginTop: 10
-    },
-
-    compactFooter: {
-        position: 'absolute',
-        bottom: 30,
-        left: 40,
-        right: 40,
-        borderTop: '1pt solid #E2E8F0',
-        paddingTop: 8,
-        flexDirection: 'row',
-        justifyContent: 'space-between'
-    },
-    metaText: { fontSize: 7, color: '#94A3B8' }
+    // REMOVED REPORT-ONLY STYLES TO CLEANUP
 })
 
 // --- Components ---
 
-const Seat = ({ student, isPinned, isDouble, side, isViolation, fontSize, noFontSize }) => {
+const Seat = ({ student, isDouble, side, fontSize }) => {
     const containerStyle = [styles.seat]
     if (isDouble) {
         containerStyle.push({ width: '50%' })
@@ -297,53 +234,63 @@ const Seat = ({ student, isPinned, isDouble, side, isViolation, fontSize, noFont
     if (isDouble && side === 'left') containerStyle.push(styles.seatLeftBorder)
 
     if (!student) {
-        containerStyle.push(styles.bgEmpty)
-        return <View style={containerStyle} />
+        // Render Empty Seat
+        return (
+            <View style={[...containerStyle, styles.bgEmpty]}>
+                {/* Optional: Add a very faint placeholder number or text if needed */}
+            </View>
+        )
     }
 
-    if (isPinned) containerStyle.push(styles.bgPinned)
-    else if (student._profile?.specialNeeds) containerStyle.push(styles.bgSpecial)
-    else containerStyle.push(styles.bgNormal)
+    containerStyle.push(styles.bgNormal)
 
-    // Accent Strip
-    let stripStyle = styles.stripNormal
-    if (isViolation) stripStyle = styles.stripWarn
-    else if (isPinned) stripStyle = styles.stripPinned
-    else if (student._profile?.specialNeeds) stripStyle = styles.stripSpecial
+    // Name Parsing
+    const parts = (student.name || '').trim().split(' ')
+    let firstName = student.name
+    let lastName = ''
+
+    if (parts.length > 1) {
+        lastName = parts.pop()
+        firstName = parts.join(' ')
+    }
 
     return (
         <View style={containerStyle}>
-            <View style={[styles.accentStrip, stripStyle]} />
-            <Text style={[styles.studentNo, { fontSize: noFontSize }]}>
-                {student.schoolNo || student.no || ''}
-            </Text>
-            <Text
-                style={[styles.studentName, { fontSize: fontSize }]}
-                maxLines={2}
-            >
-                {student.name}
-            </Text>
+            {/* Number Badge */}
+            <View style={styles.badgeContainer}>
+                <Text style={styles.studentNo}>
+                    {student.schoolNo || student.no || ''}
+                </Text>
+            </View>
+
+            <View style={styles.nameContainer}>
+                <Text style={[styles.firstName, { fontSize: fontSize }]} hyphenationCallback={(word) => [word]}>
+                    {firstName}
+                </Text>
+                <Text style={[styles.lastName, { fontSize: fontSize - 2 }]} hyphenationCallback={(word) => [word]}>
+                    {lastName}
+                </Text>
+            </View>
         </View>
     )
 }
 
-const SceneGrid = ({ setup, assignments, students, violations, pinnedSeats }) => {
+const SceneGrid = ({ setup, assignments, students }) => {
     const rows = Array.from({ length: setup.rows }, (_, i) => i + 1)
     const cols = Array.from({ length: setup.cols }, (_, i) => i + 1)
 
     const studentMap = new Map(students.map(s => [s.id, s]))
-    const violationSet = new Set(violations.map(v => v.seatId))
 
     // === DYNAMIC SCALING CALCULATION ===
     const AVAIL_WIDTH = 750
-    const AVAIL_HEIGHT = 400
+    const AVAIL_HEIGHT = 380
 
     const MIN_DESK_W = 90
     const MAX_DESK_W = 180
-    const MIN_DESK_H = 60
-    const MAX_DESK_H = 110
-    const GAP_X = 15
-    const GAP_Y = 15
+    const MIN_DESK_H = 65 // Slightly taller for 3D effect
+    const MAX_DESK_H = 120
+    const GAP_X = 20 // More spacing
+    const GAP_Y = 20
     const isDouble = setup.deskType === 'double'
 
     let calcW = (AVAIL_WIDTH - (cols.length * GAP_X)) / cols.length
@@ -352,19 +299,30 @@ const SceneGrid = ({ setup, assignments, students, violations, pinnedSeats }) =>
     const finalW = Math.min(Math.max(calcW, MIN_DESK_W), MAX_DESK_W)
     const finalH = Math.min(Math.max(calcH, MIN_DESK_H), MAX_DESK_H)
 
-    const fontSizeName = Math.max(10, Math.min(14, finalH * 0.2))
-    const fontSizeNo = Math.max(7, Math.min(9, finalH * 0.15))
+    const fontSizeName = Math.max(9, Math.min(13, finalH * 0.18))
 
     const totalContentHeight = rows.length * (finalH + GAP_Y)
     const justifyMethod = totalContentHeight < 300 ? 'center' : 'flex-start'
 
     return (
         <View style={[styles.sceneContainer, { justifyContent: justifyMethod }]}>
+            {/* BOARD */}
             <View style={styles.boardBar}>
-                <Text style={styles.boardLabel}>TAHTA</Text>
+                <Text style={styles.boardLabel}>AKILLI TAHTA</Text>
             </View>
+
+            {/* TEACHER DESK */}
             <View style={styles.teacherDesk}>
-                <Text style={styles.teacherLabel}>Öğretmen Masası</Text>
+                <Text style={styles.teacherLabel}>ÖĞRETMEN MASASI</Text>
+            </View>
+
+            {/* DOOR (Moved to Top Left area via absolute pos relative to scene container, but needs to be handled carefully) */}
+            {/* Since sceneContainer centers items, absolute positioning might be tricky relative to dynamic width. */}
+            {/* We will place it using the doorArea style which is absolute to the PAGE or relative to Container? */}
+            {/* Let's keep it simple: Absolute inside the SceneContainer works if relative to it. */}
+            <View style={styles.doorArea}>
+                <View style={styles.doorSwing} />
+                <Text style={styles.doorLabel}>KAPI</Text>
             </View>
 
             {rows.map(r => (
@@ -379,19 +337,13 @@ const SceneGrid = ({ setup, assignments, students, violations, pinnedSeats }) =>
                                 <View key={c} style={[styles.deskBox, styles.deskDouble, { width: finalW, height: finalH, marginHorizontal: GAP_X / 2 }]}>
                                     <Seat
                                         student={studentMap.get(assignments[leftId])}
-                                        isPinned={pinnedSeats.includes(leftId)}
-                                        isViolation={violationSet.has(leftId)}
                                         isDouble={true} side="left"
                                         fontSize={fontSizeName}
-                                        noFontSize={fontSizeNo}
                                     />
                                     <Seat
                                         student={studentMap.get(assignments[rightId])}
-                                        isPinned={pinnedSeats.includes(rightId)}
-                                        isViolation={violationSet.has(rightId)}
                                         isDouble={true} side="right"
                                         fontSize={fontSizeName}
-                                        noFontSize={fontSizeNo}
                                     />
                                 </View>
                             )
@@ -400,11 +352,8 @@ const SceneGrid = ({ setup, assignments, students, violations, pinnedSeats }) =>
                                 <View key={c} style={[styles.deskBox, styles.deskSingle, { width: finalW, height: finalH, marginHorizontal: GAP_X / 2 }]}>
                                     <Seat
                                         student={studentMap.get(assignments[singleId])}
-                                        isPinned={pinnedSeats.includes(singleId)}
-                                        isViolation={violationSet.has(singleId)}
                                         isDouble={false}
                                         fontSize={fontSizeName}
-                                        noFontSize={fontSizeNo}
                                     />
                                 </View>
                             )
@@ -412,127 +361,39 @@ const SceneGrid = ({ setup, assignments, students, violations, pinnedSeats }) =>
                     })}
                 </View>
             ))}
-            <View style={styles.door} />
-            <Text style={styles.doorLabel}>KAPI</Text>
         </View>
     )
 }
 
 export const ClassSeatingPDF = ({ setup, assignments, students, reportData, violations, meta }) => {
-    // Format Top Antet String
-    const antetParts = [
-        meta?.schoolName,
-        meta?.className,
-        meta?.teacherName,
-        meta?.term
-    ].filter(Boolean)
+    // Current date formatted DD.MM.YYYY
+    const today = new Date().toLocaleDateString('tr-TR')
 
-    const antetString = antetParts.length > 0 ? antetParts.join('  |  ') : 'BiSınıf Akıllı Sınıf Yönetim Sistemi'
+    // Fallbacks
+    const schoolName = meta?.schoolName || '(OKUL ADI TANIMLANMADI)'
+    const className = meta?.className || '(SINIF)'
+    const teacherName = meta?.teacherName || '(Öğretmen Tanımlanmadı)'
 
     return (
         <Document>
             <Page size="A4" orientation="landscape" style={styles.page}>
-                {/* Top Single-Line Antet */}
-                <View style={styles.topAntet}>
-                    <Text style={styles.topAntetText}>{antetString}</Text>
-                </View>
-
-                <View style={styles.sceneHeader}>
-                    <View style={styles.sceneTitleBox}>
-                        <Text style={styles.sceneTitle}>OTURMA PLANI</Text>
-                    </View>
-                    <View>
-                        <Text style={[styles.sceneDate, { fontWeight: 'bold' }]}>BiSınıf v2.5</Text>
-                        <Text style={styles.sceneDate}>{reportData.generatedAt}</Text>
+                {/* Antet */}
+                <View style={styles.headerContainer}>
+                    <Text style={styles.schoolName}>{schoolName}</Text>
+                    <Text style={styles.classNameTitle}>{className} SINIFI OTURMA PLANI</Text>
+                    <View style={styles.metaRow}>
+                        <Text style={styles.metaText}>Öğretmen: {teacherName}</Text>
+                        <Text style={styles.metaText}>|</Text>
+                        <Text style={styles.metaText}>Tarih: {today}</Text>
                     </View>
                 </View>
 
+                {/* Scene */}
                 <SceneGrid
                     setup={setup}
                     assignments={assignments}
                     students={students}
-                    violations={violations}
-                    pinnedSeats={assignments.pinnedSeatIds || []}
                 />
-                <View style={styles.legendBar}>
-                    <View style={styles.legendItem}>
-                        <View style={[styles.legendDot, { backgroundColor: THEME.primary }]} />
-                        <Text style={styles.legendLabel}>Özel Durum</Text>
-                    </View>
-                    <View style={styles.legendItem}>
-                        <View style={[styles.legendDot, { backgroundColor: '#F59E0B' }]} />
-                        <Text style={styles.legendLabel}>Kilitli</Text>
-                    </View>
-                    <View style={styles.legendItem}>
-                        <View style={[styles.legendDot, { backgroundColor: '#EF4444' }]} />
-                        <Text style={styles.legendLabel}>Uyarı</Text>
-                    </View>
-                </View>
-            </Page>
-
-            <Page size="A4" style={styles.page}>
-                <View style={styles.reportHeader}>
-                    <View>
-                        <Text style={styles.reportTitle}>
-                            {meta?.className ? `${meta.className}` : 'Sınıf'} Oturma Planı Raporu
-                        </Text>
-                        <Text style={styles.reportSub}>
-                            {meta?.schoolName} {meta?.teacherName ? `• ${meta.teacherName}` : ''}
-                        </Text>
-                        <Text style={{ fontSize: 9, color: '#94A3B8', marginTop: 4 }}>
-                            Pedagojik Gerekçe ve Analiz Raporu {meta?.term ? `• ${meta.term}` : ''}
-                        </Text>
-                    </View>
-                    <Text style={styles.reportSub}>BiSınıf v2.5</Text>
-                </View>
-                <View style={styles.sectionBox}>
-                    <View style={styles.sectionHeader}>
-                        <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: THEME.primary }} />
-                        <Text style={styles.sectionTitle}>Amaç ve Kapsam</Text>
-                    </View>
-                    <Text style={styles.bulletText}>{reportData.purpose}</Text>
-                </View>
-                <View style={styles.sectionBox}>
-                    <View style={styles.sectionHeader}>
-                        <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: THEME.primary }} />
-                        <Text style={styles.sectionTitle}>Uygulanan Kriterler</Text>
-                    </View>
-                    {reportData.criteria.map((c, i) => (
-                        <Text key={i} style={styles.bulletText}>• {c}</Text>
-                    ))}
-                </View>
-                <View style={styles.sectionBox}>
-                    <View style={styles.sectionHeader}>
-                        <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: THEME.primary }} />
-                        <Text style={styles.sectionTitle}>Oluşturma Özeti</Text>
-                    </View>
-                    <View style={styles.kpiRow}>
-                        <View style={styles.kpiCard}>
-                            <Text style={styles.kpiVal}>{students.length}</Text>
-                            <Text style={styles.kpiLabel}>Öğrenci</Text>
-                        </View>
-                        <View style={styles.kpiCard}>
-                            <Text style={styles.kpiVal}>{Object.values(assignments).filter(Boolean).length}</Text>
-                            <Text style={styles.kpiLabel}>Yerleşen</Text>
-                        </View>
-                        <View style={styles.kpiCard}>
-                            <Text style={[styles.kpiVal, { color: violations.length ? '#DC2626' : '#16A34A' }]}>{violations.length}</Text>
-                            <Text style={styles.kpiLabel}>Manuel Uyarı</Text>
-                        </View>
-                    </View>
-                </View>
-                {violations.length > 0 && (
-                    <View style={styles.warningBox}>
-                        <Text style={{ fontSize: 10, fontWeight: 'bold', color: '#B91C1C', marginBottom: 5 }}>⚠️ Dikkat Edilmesi Gereken Hususlar</Text>
-                        {violations.map((v, i) => (
-                            <Text key={i} style={{ fontSize: 9, color: '#991B1B', marginBottom: 2 }}>• {v.message}</Text>
-                        ))}
-                    </View>
-                )}
-                <View style={styles.compactFooter}>
-                    <Text style={styles.metaText}>BiSınıf Akıllı Sınıf Yönetim Sistemi</Text>
-                    <Text style={styles.metaText}>{reportData.metadata.planId} | {reportData.metadata.hash}</Text>
-                </View>
             </Page>
         </Document>
     )
