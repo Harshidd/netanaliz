@@ -208,6 +208,7 @@ export const classRepo = {
                     attention: profile.attention ?? 3,
                     disciplineRisk: profile.disciplineRisk ?? 0,
                     specialNeeds: profile.specialNeeds ?? '',
+                    frontRowPreferred: profile.frontRowPreferred ?? false,
                     tags: profile.tags || [],
                     notes: profile.notes ?? '',
                     updatedAt: profile.updatedAt
