@@ -1,10 +1,14 @@
+import { storageBatcher } from '../../utils/performanceUtils'
+import { KEY_MAP } from '../../backup/backupKeys'
+
+// Use KEY_MAP as SSOT - no hardcoded keys
 export const SEATING_KEYS = {
-    setup: 'bisinif_class_seating_setup_v1',
-    rules: 'bisinif_class_seating_rules_v1',
-    plan: 'bisinif_class_seating_plan_v2', // Upgraded to v2
-    history: 'bisinif_class_seating_history_v1',
-    analyticsMap: 'bisinif_class_analytics_map_v1',
-    selectedExam: 'bisinif_class_analytics_selected_exam_v1'
+    setup: KEY_MAP.SEATING_SETUP,
+    rules: KEY_MAP.SEATING_RULES,
+    plan: KEY_MAP.SEATING_PLAN,
+    history: KEY_MAP.SEATING_HISTORY,
+    analyticsMap: KEY_MAP.ANALYTICS_MAP,
+    selectedExam: KEY_MAP.ANALYTICS_SELECTED_EXAM
 }
 
 const readStorage = (key, defaultValue) => {
@@ -35,13 +39,74 @@ const readStorage = (key, defaultValue) => {
     }
 }
 
-const writeStorage = (key, value) => {
+const writeStorage = (key, value, immediate = false) => {
     try {
-        localStorage.setItem(key, JSON.stringify(value))
+        if (immediate) {
+            storageBatcher.writeNow(key, value)
+        } else {
+            storageBatcher.scheduleWrite(key, value)
+        }
         return true
     } catch (error) {
         console.warn(`[SeatingRepo] Failed to write ${key}:`, error)
         return false
+    }
+}
+
+// ============================================
+// INTEGRITY GUARDS
+// ============================================
+
+/**
+ * Validate snapshot schema before saving to history
+ * Returns { valid: boolean, errors: string[] }
+ */
+const validateSnapshot = (snapshot) => {
+    const errors = []
+    const IS_DEV = import.meta.env.DEV
+
+    if (!snapshot.rows || snapshot.rows <= 0) errors.push('Invalid rows')
+    if (!snapshot.cols || snapshot.cols <= 0) errors.push('Invalid cols')
+    if (!snapshot.layout || typeof snapshot.layout !== 'object') errors.push('Invalid layout')
+    if (!snapshot.id) errors.push('Missing id')
+    if (!snapshot.createdAt) errors.push('Missing createdAt')
+
+    if (errors.length > 0 && IS_DEV) {
+        console.warn('[SeatingRepo] Invalid snapshot:', errors, snapshot)
+    }
+
+    return { valid: errors.length === 0, errors }
+}
+
+/**
+ * Sanitize plan by removing seats with non-existent students
+ * Prevents crashes when roster changes
+ */
+const sanitizePlan = (plan, validStudentIds) => {
+    if (!plan || !plan.assignments) return plan
+
+    const IS_DEV = import.meta.env.DEV
+    const cleanedAssignments = {}
+    let removedCount = 0
+
+    Object.entries(plan.assignments).forEach(([seatId, studentId]) => {
+        if (validStudentIds.includes(studentId)) {
+            cleanedAssignments[seatId] = studentId
+        } else {
+            removedCount++
+            if (IS_DEV) {
+                console.warn(`[SeatingRepo] Removing orphaned seat ${seatId} (student ${studentId} not in roster)`)
+            }
+        }
+    })
+
+    if (removedCount > 0 && IS_DEV) {
+        console.log(`[SeatingRepo] Sanitized plan: removed ${removedCount} orphaned seats`)
+    }
+
+    return {
+        ...plan,
+        assignments: cleanedAssignments
     }
 }
 
@@ -72,9 +137,18 @@ export const seatingRepo = {
     saveRules: (rules) => writeStorage(SEATING_KEYS.rules, rules),
 
     // 3. Plan (Result)
-    loadPlan: () => {
+    loadPlan: (validStudentIds = []) => {
         const plan = readStorage(SEATING_KEYS.plan, null)
-        if (plan && !plan.pinnedSeatIds) plan.pinnedSeatIds = [] // Safety
+        if (!plan) return null
+
+        // Safety: ensure v2 fields
+        if (!plan.pinnedSeatIds) plan.pinnedSeatIds = []
+
+        // Integrity: remove orphaned students (if roster provided)
+        if (validStudentIds.length > 0) {
+            return sanitizePlan(plan, validStudentIds)
+        }
+
         return plan
     },
     savePlan: (plan) => {
@@ -120,7 +194,7 @@ export const seatingRepo = {
                 // If it was auto and now we manually save, it might deserve promotion, but sticking to update time for now
             }
             const newHistory = [updatedLast, ...history.slice(1)]
-            return writeStorage(SEATING_KEYS.history, newHistory)
+            return writeStorage(SEATING_KEYS.history, newHistory, true) // Immediate for history
         }
 
         const date = new Date()
@@ -137,6 +211,13 @@ export const seatingRepo = {
             setup: plan.setup || null,
             isAuto: isAuto,
             isPinned: false
+        }
+
+        // Validate snapshot schema
+        const validation = validateSnapshot(snapshot)
+        if (!validation.valid) {
+            console.error('[SeatingRepo] Dropping invalid snapshot:', validation.errors)
+            return false // Don't save corrupt data
         }
 
         // --- RETENTION POLICY ---
@@ -171,7 +252,7 @@ export const seatingRepo = {
             }
         }
 
-        return writeStorage(SEATING_KEYS.history, newHistory)
+        return writeStorage(SEATING_KEYS.history, newHistory, true) // Immediate for history
     },
 
     updateHistoryItemPinned: (id, isPinned) => {
@@ -183,7 +264,7 @@ export const seatingRepo = {
     deleteHistoryItem: (id) => {
         const history = readStorage(SEATING_KEYS.history, [])
         const newHistory = history.filter(item => item.id !== id)
-        return writeStorage(SEATING_KEYS.history, newHistory)
+        return writeStorage(SEATING_KEYS.history, newHistory, true) // Immediate for delete
     },
 
     updateHistoryItemTitle: (id, newTitle) => {
@@ -252,7 +333,7 @@ export const seatingRepo = {
         })
 
         if (historyDirty) {
-            writeStorage(SEATING_KEYS.history, cleanedHistory)
+            writeStorage(SEATING_KEYS.history, cleanedHistory, true) // Immediate for cascade delete
         }
 
         // C. Analytics Map (Manual pairings)

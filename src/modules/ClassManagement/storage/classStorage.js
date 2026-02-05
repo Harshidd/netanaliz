@@ -1,9 +1,13 @@
+import { storageBatcher } from '../utils/performanceUtils'
+import { KEY_MAP } from '../backup/backupKeys'
+
+// Use KEY_MAP as SSOT - no hardcoded keys
 export const STORAGE_KEYS = {
-    profiles: 'bisinif_class_profiles_v1',
-    conflicts: 'bisinif_class_conflicts_v1',
-    meta: 'bisinif_class_meta_v1',
-    roster: 'bisinif_class_roster_v1',
-    rosterMeta: 'bisinif_class_roster_meta_v1'
+    profiles: KEY_MAP.PROFILES,
+    conflicts: KEY_MAP.CONFLICTS,
+    meta: KEY_MAP.META,
+    roster: KEY_MAP.ROSTER,
+    rosterMeta: KEY_MAP.ROSTER_META
 }
 
 const readStorage = (key, defaultValue) => {
@@ -17,9 +21,13 @@ const readStorage = (key, defaultValue) => {
     }
 }
 
-const writeStorage = (key, value) => {
+const writeStorage = (key, value, immediate = false) => {
     try {
-        localStorage.setItem(key, JSON.stringify(value))
+        if (immediate) {
+            storageBatcher.writeNow(key, value)
+        } else {
+            storageBatcher.scheduleWrite(key, value)
+        }
         return true
     } catch (error) {
         console.warn(`[ClassStorage] Failed to write ${key}:`, error)
@@ -28,17 +36,16 @@ const writeStorage = (key, value) => {
 }
 
 export const loadProfiles = () => readStorage(STORAGE_KEYS.profiles, {})
-export const saveProfiles = (profiles) => writeStorage(STORAGE_KEYS.profiles, profiles)
+export const saveProfiles = (profiles, immediate = false) => writeStorage(STORAGE_KEYS.profiles, profiles, immediate)
 
 export const loadConflicts = () => readStorage(STORAGE_KEYS.conflicts, [])
-export const saveConflicts = (conflicts) => writeStorage(STORAGE_KEYS.conflicts, conflicts)
+export const saveConflicts = (conflicts, immediate = false) => writeStorage(STORAGE_KEYS.conflicts, conflicts, immediate)
 
 export const loadMeta = () => readStorage(STORAGE_KEYS.meta, {})
-export const saveMeta = (meta) => writeStorage(STORAGE_KEYS.meta, meta)
+export const saveMeta = (meta, immediate = false) => writeStorage(STORAGE_KEYS.meta, meta, immediate)
 
 export const loadRoster = () => readStorage(STORAGE_KEYS.roster, [])
-export const saveRoster = (roster) => writeStorage(STORAGE_KEYS.roster, roster)
+export const saveRoster = (roster, immediate = false) => writeStorage(STORAGE_KEYS.roster, roster, immediate)
 
 export const loadRosterMeta = () => readStorage(STORAGE_KEYS.rosterMeta, {})
-export const saveRosterMeta = (meta) => writeStorage(STORAGE_KEYS.rosterMeta, meta)
-
+export const saveRosterMeta = (meta, immediate = false) => writeStorage(STORAGE_KEYS.rosterMeta, meta, immediate)

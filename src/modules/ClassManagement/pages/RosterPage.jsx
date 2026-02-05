@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useMemo, memo, useCallback, useRef } from 'react'
+import React, { useState, useEffect, useMemo, memo, useCallback, useRef, useDeferredValue } from 'react'
 import { classRepo } from '../repo/classRepo'
 import StudentImporter from '../../../components/StudentImporter'
+import { perfMonitor } from '../utils/performanceUtils'
 import StudentEditorModal from '../components/StudentEditorModal'
 import ImportWizard from '../components/ImportWizard'
 import ConflictModal from '../components/ConflictModal'
@@ -15,7 +16,6 @@ const GENDER_OPTIONS = [
     { value: 'E', label: 'Erkek' },
 ]
 
-const TAG_OPTIONS = ['Dikkat', 'Gözlük', 'Kaynaştırma', 'Davranış', 'İşitme', 'Bedensel', 'Solak']
 const EMPTY_ARRAY = []
 
 /**
@@ -32,7 +32,6 @@ const StudentRow = memo(({
     studentNumber,
     gender,
     frontRowPreferred,
-    tagsStr, // Primitive string "Tag1,Tag2"
     conflictCount, // Primitive number
     hasConflict,   // Primitive boolean
     onUpdateGender,
@@ -41,12 +40,6 @@ const StudentRow = memo(({
     onDelete,
     onOpenConflicts
 }) => {
-    // Re-hydrate tags array for the component, memoized locally
-    // string.split is fast enough for individual row rendering
-    const tags = useMemo(() => {
-        return tagsStr ? tagsStr.split(',') : EMPTY_ARRAY
-    }, [tagsStr])
-
     // Callbacks with ID pre-bound to avoid inline arrow functions in render
     const handleGenderChange = useCallback((val) => {
         onUpdateGender(studentId, val)
@@ -54,10 +47,6 @@ const StudentRow = memo(({
 
     const handleFrontRowChange = useCallback((val) => {
         onUpdateProfile(studentId, { frontRowPreferred: val })
-    }, [studentId, onUpdateProfile])
-
-    const handleTagsChange = useCallback((newTags) => {
-        onUpdateProfile(studentId, { tags: newTags })
     }, [studentId, onUpdateProfile])
 
     const handleOpenConflicts = useCallback(() => {
@@ -108,31 +97,26 @@ const StudentRow = memo(({
                 />
             </td>
 
-            {/* Special Status (Tags) - Inline */}
-            <td className="py-3 px-4 min-w-[200px]">
-                <InlineTags
-                    tags={tags}
-                    options={TAG_OPTIONS}
-                    onChange={handleTagsChange}
-                    placeholder="Özel Durum Seç..."
-                />
-            </td>
 
-            {/* Conflicts Indicator */}
-            <td className="py-3 px-4 w-24 text-center">
+
+            {/* Conflicts Indicator - Yan Yana Oturmasın */}
+            <td className="py-3 px-4 text-center">
                 <button
                     onClick={handleOpenConflicts}
                     className={`
-                        p-2 rounded-lg transition-all relative
+                        px-3 py-2 rounded-lg transition-all relative font-medium text-sm flex items-center gap-2 mx-auto
                         ${hasConflict
-                            ? 'bg-red-100 text-red-600 hover:bg-red-200 shadow-sm'
-                            : 'text-gray-300 hover:text-gray-500 hover:bg-gray-100'}
+                            ? 'bg-red-100 text-red-700 hover:bg-red-200 shadow-sm border border-red-200'
+                            : 'bg-gray-50 text-gray-400 hover:text-gray-600 hover:bg-gray-100 border border-gray-200'}
                     `}
-                    title="Kısıtlamaları Yönet"
+                    title="Yan yana oturmaması gereken öğrencileri seçin"
                 >
                     <ShieldAlert className="w-4 h-4" />
+                    <span className="hidden sm:inline">
+                        {hasConflict ? `${conflictCount} Kısıt` : 'Kısıt Ekle'}
+                    </span>
                     {conflictCount > 0 && (
-                        <span className="absolute -top-1 -right-1 bg-red-600 text-white text-[9px] font-extrabold w-4 h-4 flex items-center justify-center rounded-full ring-2 ring-white">
+                        <span className="sm:hidden bg-red-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
                             {conflictCount}
                         </span>
                     )}
@@ -169,8 +153,7 @@ const StudentRow = memo(({
         prev.gender === next.gender &&
         prev.frontRowPreferred === next.frontRowPreferred &&
         prev.conflictCount === next.conflictCount &&
-        prev.hasConflict === next.hasConflict &&
-        prev.tagsStr === next.tagsStr // String comparison is O(1) for short strings
+        prev.hasConflict === next.hasConflict
     )
 })
 
@@ -204,8 +187,14 @@ export default function RosterPage() {
     }, [])
 
     const refresh = () => {
+        if (import.meta.env.DEV) {
+            perfMonitor.startTimer('roster-refresh')
+        }
         setStudents(classRepo.getStudents())
         setConflicts(classRepo.listConflicts())
+        if (import.meta.env.DEV) {
+            perfMonitor.endTimer('roster-refresh')
+        }
     }
 
     // --- DEBOUNCED PERSISTENCE HOOK LOGIC ---
@@ -311,11 +300,17 @@ export default function RosterPage() {
     // O(1) lookup Map. Only recalculates when `conflicts` array changes.
     // Does NOT run on every render.
     const conflictMap = useMemo(() => {
+        if (import.meta.env.DEV) {
+            perfMonitor.startTimer('conflict-index-build')
+        }
         const map = {}
         conflicts.forEach(c => {
             map[c.studentIdA] = (map[c.studentIdA] || 0) + 1
             map[c.studentIdB] = (map[c.studentIdB] || 0) + 1
         })
+        if (import.meta.env.DEV) {
+            perfMonitor.endTimer('conflict-index-build')
+        }
         return map
     }, [conflicts])
 
@@ -332,9 +327,15 @@ export default function RosterPage() {
 
     // --- FILTER & SORT LOGIC ---
     // Memoized to prevent re-filtering when unrelated states (like Modal open) change
+    // Use deferred search value to prevent lag during typing
+    const deferredSearch = useDeferredValue(search)
+
     const filtered = useMemo(() => {
+        if (import.meta.env.DEV) {
+            perfMonitor.startTimer('filter-sort')
+        }
         let result = students
-        const term = search.toLowerCase().trim()
+        const term = deferredSearch.toLowerCase().trim()
 
         if (term) {
             result = result.filter(s =>
@@ -347,7 +348,7 @@ export default function RosterPage() {
             result = result.filter(s => s.gender === filterGender)
         }
 
-        return [...result].sort((a, b) => {
+        const sorted = [...result].sort((a, b) => {
             if (sortBy === 'NAME_ASC') return (a.name || '').localeCompare(b.name || '')
             if (sortBy === 'NO_ASC') {
                 const nA = parseInt(a.no, 10)
@@ -357,7 +358,12 @@ export default function RosterPage() {
             }
             return 0
         })
-    }, [students, search, filterGender, sortBy])
+
+        if (import.meta.env.DEV) {
+            perfMonitor.endTimer('filter-sort')
+        }
+        return sorted
+    }, [students, deferredSearch, filterGender, sortBy])
 
     // Action wrappers (Non-row) - Stable
     const openCreate = () => {
@@ -458,8 +464,12 @@ export default function RosterPage() {
                                 <th className="py-3 px-4 font-semibold">Ad Soyad</th>
                                 <th className="py-3 px-4 w-32 font-semibold">Cinsiyet</th>
                                 <th className="py-3 px-4 w-32 font-semibold">Ön Sıra</th>
-                                <th className="py-3 px-4 min-w-[200px] font-semibold">Özel Durum</th>
-                                <th className="py-3 px-4 w-24 text-center font-semibold">Kısıtlar</th>
+                                <th className="py-3 px-4 text-center font-semibold">
+                                    <div className="flex items-center justify-center gap-1.5">
+                                        <ShieldAlert className="w-3.5 h-3.5" />
+                                        <span>Yan Yana Oturmasın</span>
+                                    </div>
+                                </th>
                                 <th className="py-3 px-4 w-28 text-right font-semibold">İşlem</th>
                             </tr>
                         </thead>
@@ -470,12 +480,6 @@ export default function RosterPage() {
                                     // Use stable 'conflictMap' for O(1)
                                     const cCount = conflictMap[s.id] || 0
 
-                                    // Generate Safe String for Tags (Primitive prop)
-                                    // s._profile.tags is array, we join it to "Tag1,Tag2".
-                                    // If empty or null, we pass empty string.
-                                    // This prevents passing new Array reference [] on every render.
-                                    const tagsStr = s._profile?.tags ? s._profile.tags.join(',') : ''
-
                                     return (
                                         <StudentRow
                                             key={s.id}
@@ -485,7 +489,6 @@ export default function RosterPage() {
                                             studentNumber={s.studentNumber}
                                             gender={s.gender}
                                             frontRowPreferred={s._profile?.frontRowPreferred || false}
-                                            tagsStr={tagsStr}
                                             conflictCount={cCount} // Primitive number
                                             hasConflict={cCount > 0} // Primitive boolean
 
@@ -500,7 +503,7 @@ export default function RosterPage() {
                                 })
                             ) : (
                                 <tr>
-                                    <td colSpan="7" className="py-12 text-center text-gray-400">
+                                    <td colSpan="6" className="py-12 text-center text-gray-400">
                                         <div className="flex flex-col items-center justify-center gap-3">
                                             <Filter className="w-10 h-10 opacity-20" />
                                             <span>Kriterlere uygun sonuç bulunamadı.</span>

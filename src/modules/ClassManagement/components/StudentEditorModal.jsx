@@ -7,14 +7,7 @@ const TABS = {
     CONSTRAINTS: 'constraints'
 }
 
-const TAG_OPTIONS = [
-    { id: 'glasses', label: 'Gözlük Kullanıyor', color: 'bg-blue-100 text-blue-700' },
-    { id: 'vision_impairment', label: 'Görme Bozukluğu', color: 'bg-purple-100 text-purple-700' },
-    { id: 'hearing_impairment', label: 'İşitme Cihazı', color: 'bg-orange-100 text-orange-700' },
-    { id: 'attention_deficit', label: 'Dikkat Dağınıklığı', color: 'bg-yellow-100 text-yellow-700' },
-    { id: 'hyperactivity', label: 'Hiperaktivite', color: 'bg-red-100 text-red-700' },
-    { id: 'learning_disability', label: 'Öğrenme Güçlüğü', color: 'bg-pink-100 text-pink-700' }
-]
+
 
 export default function StudentEditorModal({ isOpen, onClose, studentId, onSave }) {
     const [activeTab, setActiveTab] = useState(TABS.BASIC)
@@ -123,16 +116,7 @@ export default function StudentEditorModal({ isOpen, onClose, studentId, onSave 
         }
     }
 
-    const toggleTag = (tagId) => {
-        setFormData(prev => {
-            const tags = prev.tags || []
-            if (tags.includes(tagId)) {
-                return { ...prev, tags: tags.filter(t => t !== tagId) }
-            } else {
-                return { ...prev, tags: [...tags, tagId] }
-            }
-        })
-    }
+
 
     const resolveConflictName = (c) => {
         const otherId = c.studentIdA === studentId ? c.studentIdB : c.studentIdA
@@ -236,28 +220,7 @@ export default function StudentEditorModal({ isOpen, onClose, studentId, onSave 
                                 </div>
                             </div>
 
-                            <div className="space-y-3 pt-4 border-t border-gray-100">
-                                <label className="text-xs font-bold text-gray-500 uppercase flex items-center gap-2">
-                                    <Users className="w-4 h-4" /> Etiketler & Gereksinimler
-                                </label>
-                                <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
-                                    {TAG_OPTIONS.map(tag => (
-                                        <button
-                                            key={tag.id}
-                                            onClick={() => toggleTag(tag.id)}
-                                            className={`
-                                                p-2 rounded-lg text-xs font-semibold text-left transition-all border
-                                                ${formData.tags?.includes(tag.id)
-                                                    ? `${tag.color} border-transparent shadow-sm ring-1 ring-opacity-50`
-                                                    : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'}
-                                            `}
-                                        >
-                                            {formData.tags?.includes(tag.id) && <CheckCircle2 className="w-3 h-3 inline mr-1" />}
-                                            {tag.label}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
+
 
                             <div className="space-y-1.5">
                                 <label className="text-xs font-bold text-gray-500 uppercase">Öğretmen Notu</label>
