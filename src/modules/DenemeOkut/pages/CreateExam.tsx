@@ -8,6 +8,9 @@ import { ArrowLeft, AlertCircle, Check } from 'lucide-react'
 import { v4 as uuidv4 } from 'uuid'
 import { templateRegistry } from '../services/templateRegistry'
 import { db } from '../db'
+import { DenemeOkutExamSchema } from '../schemas'
+import { logger } from '../../../core/observability/logger'
+import { FatalModuleError } from '../components/FatalModuleError'
 import type { Template } from '../schemas/templateSchema'
 
 export default function CreateExam() {
@@ -19,19 +22,24 @@ export default function CreateExam() {
     const [templates, setTemplates] = useState<Template[]>([])
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    const [fatalError, setFatalError] = useState<{ message: string, details: string[] } | null>(null)
 
     // Load templates on mount
     useEffect(() => {
         try {
+            // Check fatal first
+            const fatal = templateRegistry.getFatalError()
+            if (fatal) {
+                setFatalError(fatal)
+                return
+            }
+
             const all = templateRegistry.getAllTemplates()
             setTemplates(all)
-            if (all.length > 0) {
-                // Default select first? Or force user choice? Let's force choice for clarity or default to 0
-                // setSelectedTemplateId(all[0].templateId) 
-            }
         } catch (err) {
             console.error('Failed to load templates:', err)
-            setError('Şablonlar yüklenirken hata oluştu.')
+            // If getFatalError didn't catch it but getAll throws, treat as fatal
+            setFatalError({ message: 'Şablon sistemi başlatılamadı.', details: [(err as Error).message] })
         }
     }, [])
 
@@ -53,31 +61,53 @@ export default function CreateExam() {
 
         setLoading(true)
         setError(null)
+        const startTime = performance.now()
 
         try {
             const newExamId = uuidv4()
             const now = new Date().toISOString()
 
-            await db.addExam({
+            const examData = {
                 id: newExamId,
                 title: title.trim(),
                 templateId: template.templateId,
                 templateVersion: template.version,
                 templateName: template.name,
                 questionCount: template.questionCount,
-                answerKey: {}, // Empty for now, to be filled later
+                answerKey: {}, // Empty for now
                 createdAt: now,
                 updatedAt: now
+            }
+
+            // Runtime Validation before DB
+            const validation = DenemeOkutExamSchema.safeParse(examData)
+            if (!validation.success) {
+                throw new Error('Veri doğrulama hatası: ' + validation.error.issues[0].message)
+            }
+
+            await db.addExam(examData)
+
+            logger.info('CreateExam', 'Exam Created', {
+                examId: newExamId,
+                template: template.templateId,
+                durationMs: performance.now() - startTime
             })
 
-            console.log(`[CreateExam] Created exam ${newExamId} with template ${template.name}`)
             navigate('/deneme-okut/denemeler')
         } catch (err: any) {
-            console.error('Failed to create exam:', err)
+            logger.error('CreateExam', 'Failed to create exam', { error: err })
             setError(err.message || 'Deneme oluşturulurken bir hata oluştu.')
         } finally {
             setLoading(false)
         }
+    }
+
+    if (fatalError) {
+        return (
+            <div className="min-h-screen bg-gray-50 p-6">
+                <FatalModuleError title={fatalError.message} message="Sistem güvenliği için modül devre dışı bırakıldı." details={fatalError.details} />
+            </div>
+        )
     }
 
     return (
@@ -126,7 +156,7 @@ export default function CreateExam() {
                             <label className="block text-sm font-medium text-gray-700 mb-3">Optik Form Şablonu</label>
 
                             {templates.length === 0 ? (
-                                <div className="text-gray-500 italic text-sm">Şablonlar yükleniyor veya bulunamadı...</div>
+                                <div className="text-gray-500 italic text-sm">Şablonlar yükleniyor...</div>
                             ) : (
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     {templates.map(t => (
