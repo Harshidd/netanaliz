@@ -4,13 +4,14 @@
 
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, AlertCircle, Check } from 'lucide-react'
+import { ArrowLeft, AlertCircle, Check, QrCode, Download, ExternalLink } from 'lucide-react'
 import { v4 as uuidv4 } from 'uuid'
 import { templateRegistry } from '../services/templateRegistry'
 import { db } from '../db'
 import { DenemeOkutExamSchema } from '../schemas'
 import { logger } from '../../../core/observability/logger'
 import { FatalModuleError } from '../components/FatalModuleError'
+import { generateExamQRCode } from '../services/qr'
 import type { Template } from '../schemas/templateSchema'
 
 export default function CreateExam() {
@@ -23,6 +24,10 @@ export default function CreateExam() {
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [fatalError, setFatalError] = useState<{ message: string, details: string[] } | null>(null)
+
+    // PR-4 Success State
+    const [createdExamId, setCreatedExamId] = useState<string | null>(null)
+    const [qrValue, setQrValue] = useState<string | null>(null)
 
     // Load templates on mount
     useEffect(() => {
@@ -93,7 +98,17 @@ export default function CreateExam() {
                 durationMs: performance.now() - startTime
             })
 
-            navigate('/deneme-okut/denemeler')
+            // UX: Generate QR and show success instead of redirect
+            try {
+                const qr = await generateExamQRCode(newExamId, template.templateId, template.version)
+                setQrValue(qr)
+                setCreatedExamId(newExamId)
+            } catch (qrErr) {
+                // QR fail shouldn't block the flow, but let's log it
+                logger.warn('CreateExam', 'QR Generation Failed silently', { error: qrErr })
+                navigate('/deneme-okut/denemeler')
+            }
+
         } catch (err: any) {
             logger.error('CreateExam', 'Failed to create exam', { error: err })
             setError(err.message || 'Deneme oluşturulurken bir hata oluştu.')
@@ -106,6 +121,45 @@ export default function CreateExam() {
         return (
             <div className="min-h-screen bg-gray-50 p-6">
                 <FatalModuleError title={fatalError.message} message="Sistem güvenliği için modül devre dışı bırakıldı." details={fatalError.details} />
+            </div>
+        )
+    }
+
+    // Success View with QR
+    if (createdExamId && qrValue) {
+        return (
+            <div className="min-h-screen bg-gray-50 p-6 flex flex-col items-center justify-center">
+                <div className="max-w-md w-full bg-white rounded-2xl shadow-lg border border-gray-100 p-8 text-center animate-fade-in">
+                    <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <Check className="w-8 h-8" />
+                    </div>
+
+                    <h2 className="text-2xl font-bold text-gray-900 mb-2">Deneme Oluşturuldu!</h2>
+                    <p className="text-gray-500 mb-8">Öğrencilerin bu sınava katılması için aşağıdaki QR kodunu kullanabilirsiniz.</p>
+
+                    <div className="bg-white p-4 rounded-xl border-2 border-dashed border-gray-200 inline-block mb-8">
+                        <img src={qrValue} alt="Sınav QR Kodu" className="w-48 h-48" />
+                    </div>
+
+                    <div className="flex flex-col gap-3">
+                        <a
+                            href={qrValue}
+                            download={`exam-qr-${createdExamId}.png`}
+                            className="flex items-center justify-center gap-2 bg-gray-900 text-white w-full py-3 rounded-xl hover:bg-gray-800 transition-colors font-medium"
+                        >
+                            <Download className="w-5 h-5" />
+                            QR Kodunu İndir
+                        </a>
+
+                        <button
+                            onClick={() => navigate('/deneme-okut/denemeler')}
+                            className="flex items-center justify-center gap-2 text-gray-600 hover:text-gray-900 w-full py-3 font-medium"
+                        >
+                            Listeye Dön
+                            <ExternalLink className="w-4 h-4" />
+                        </button>
+                    </div>
+                </div>
             </div>
         )
     }
@@ -201,6 +255,7 @@ export default function CreateExam() {
                                 disabled={loading}
                                 className="flex-1 px-6 py-3 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                             >
+                                {loading && <QrCode className="w-4 h-4 animate-pulse" />}
                                 {loading ? 'Oluşturuluyor...' : 'Oluştur'}
                             </button>
                         </div>

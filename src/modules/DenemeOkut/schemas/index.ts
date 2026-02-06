@@ -116,6 +116,18 @@ export type DenemeOkutPreferencesInput = z.input<typeof DenemeOkutPreferencesSch
 export type DenemeOkutPreferencesOutput = z.output<typeof DenemeOkutPreferencesSchema>
 
 // ============================================
+// QR PAYLOAD SCHEMA (PR-4)
+// ============================================
+
+export const QRPayloadSchema = z.object({
+    examId: z.string().uuid(),
+    templateId: z.string().min(1),
+    version: z.number().int().positive()
+})
+
+export type QRPayload = z.infer<typeof QRPayloadSchema>
+
+// ============================================
 // HELPER: Validate or Throw
 // ============================================
 
