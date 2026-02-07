@@ -30,6 +30,11 @@ export default defineConfig({
               return 'vendor-pdf'
             }
 
+            // NEW: PDF Dependency Libs (found in vendor-libs previously)
+            if (id.includes('yoga-layout') || id.includes('fontkit') || id.includes('linebreak') || id.includes('unicode-properties') || id.includes('unicode-trie')) {
+              return 'vendor-pdf-libs'
+            }
+
             // 3. Excel/Data Processing
             if (id.includes('xlsx') || id.includes('exceljs')) {
               return 'vendor-excel'
@@ -45,9 +50,29 @@ export default defineConfig({
               return 'vendor-ui'
             }
 
+            // NEW: QR Code Libs (found in vendor-libs previously)
+            if (id.includes('jsqr') || id.includes('qrcode')) {
+              return 'vendor-qrcode'
+            }
+
             // 6. App Core (State, DB, Utils)
             if (id.includes('dexie') || id.includes('zustand') || id.includes('zod') || id.includes('uuid') || id.includes('@capacitor') || id.includes('axios')) {
               return 'vendor-core'
+            }
+
+            // NEW: Date & i18n
+            if (id.includes('date-fns') || id.includes('dayjs') || id.includes('moment') || id.includes('luxon') || id.includes('intl') || id.includes('i18next')) {
+              return 'vendor-date-i18n'
+            }
+
+            // NEW: Utilities
+            if (id.includes('lodash') || id.includes('nanoid') || id.includes('immer') || id.includes('deepmerge') || id.includes('fast-deep-equal') || id.includes('classnames')) {
+              return 'vendor-utils'
+            }
+
+            // NEW: Polyfills
+            if (id.includes('core-js') || id.includes('whatwg') || id.includes('regenerator-runtime') || id.includes('tslib')) {
+              return 'vendor-polyfills'
             }
 
             // 7. Remainder
